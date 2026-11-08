@@ -49,7 +49,9 @@ for abi in "${abis[@]}"; do
 			cd "$work/easytier"
 			rustup target add "$triple" >/dev/null
 			export ANDROID_NDK_ROOT=$NDK ANDROID_NDK_HOME=$NDK
-			export "CARGO_TARGET_${env_triple}_LINKER=$TC/$clang" "CC_${under}=$TC/$clang" "CXX_${under}=$TC/$clang++" "AR_${under}=$TC/llvm-ar"
+			export "CARGO_TARGET_${env_triple}_LINKER=$TC/$clang"
+			# bindgen (kcp-sys and friends) must parse the NDK's headers, not the host's
+			export "BINDGEN_EXTRA_CLANG_ARGS_${under}=--sysroot=$TC/../sysroot --target=${clang%-clang}" "CC_${under}=$TC/$clang" "CXX_${under}=$TC/$clang++" "AR_${under}=$TC/llvm-ar"
 			cargo build --release --locked -p easytier --bin easytier-core --target "$triple"
 		)
 		cp "$work/easytier/target/$triple/release/easytier-core" "$out/libeasytier.so"
