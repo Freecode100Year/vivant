@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="bottom"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="@string/app_name"
+                android:textColor="@color/accent"
+                android:textSize="30sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/version"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginBottom="5dp"
+                android:textColor="@color/muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/Hint"
+            android:layout_marginBottom="12dp"
+            android:text="@string/subtitle" />
+
+        <!-- status -->
+        <LinearLayout style="@style/Card">
+
+            <TextView
+                android:id="@+id/status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/online"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/text"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/error"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="@color/err"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/toggle"
+                style="@style/Btn"
+                android:layout_width="match_parent"
+                android:layout_marginTop="10dp" />
+        </LinearLayout>
+
+        <!-- how to connect -->
+        <LinearLayout style="@style/Card">
+
+            <TextView
+                style="@style/Label"
+                android:layout_marginTop="0dp"
+                android:text="@string/connect_title" />
+
+            <TextView
+                style="@style/Hint"
+                android:layout_marginTop="4dp"
+                android:text="@string/connect_hint" />
+
+            <TextView
+                android:id="@+id/connect"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/log_bg"
+                android:fontFamily="monospace"
+                android:padding="10dp"
+                android:textColor="@color/log_text"
+                android:textIsSelectable="true"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/copy"
+                style="@style/Btn"
+                android:layout_width="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/copy" />
+
+            <TextView
+                android:id="@+id/fingerprint"
+                style="@style/Hint"
+                android:layout_marginTop="8dp"
+                android:fontFamily="monospace"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+
+        <!-- settings -->
+        <LinearLayout style="@style/Card">
+
+            <TextView
+                style="@style/Label"
+                android:layout_marginTop="0dp"
+                android:text="@string/settings_title" />
+
+            <TextView style="@style/Label" android:text="@string/port" />
+            <EditText
+                android:id="@+id/port"
+                style="@style/Field"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:maxLength="5" />
+
+            <TextView style="@style/Label" android:text="@string/max_clients" />
+            <EditText
+                android:id="@+id/max_clients"
+                style="@style/Field"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:maxLength="6" />
+
+            <TextView style="@style/Label" android:text="@string/rooms" />
+            <EditText
+                android:id="@+id/rooms"
+                style="@style/Field"
+                android:hint="@string/rooms_hint"
+                android:importantForAutofill="no"
+                android:inputType="text" />
+
+            <TextView style="@style/Label" android:text="@string/extra" />
+            <EditText
+                android:id="@+id/extra"
+                style="@style/Field"
+                android:fontFamily="monospace"
+                android:hint="@string/extra_hint"
+                android:importantForAutofill="no"
+                android:inputType="text|textNoSuggestions" />
+
+            <CheckBox
+                android:id="@+id/autostart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:buttonTint="@color/accent"
+                android:minHeight="48dp"
+                android:text="@string/autostart"
+                android:textColor="@color/text"
+                android:textSize="15sp" />
+
+            <Button
+                android:id="@+id/battery"
+                style="@style/Btn"
+                android:layout_width="match_parent"
+                android:layout_marginTop="4dp"
+                android:text="@string/battery" />
+        </LinearLayout>
+
+        <!-- log -->
+        <LinearLayout style="@style/Card">
+
+            <TextView
+                style="@style/Label"
+                android:layout_marginTop="0dp"
+                android:text="@string/log_title" />
+
+            <ScrollView
+                android:id="@+id/log_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/log_bg"
+                android:nestedScrollingEnabled="true">
+
+                <TextView
+                    android:id="@+id/log"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:padding="8dp"
+                    android:textColor="@color/log_text"
+                    android:textIsSelectable="true"
+                    android:textSize="11sp" />
+            </ScrollView>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

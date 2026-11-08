@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VIVANT</string>
+    <string name="subtitle">匿名 SSH 聊天室服务器 · Anonymous SSH chat server</string>
+
+    <string name="status_running">● 运行中 · Running</string>
+    <string name="status_starting">● 启动中… · Starting…</string>
+    <string name="status_stopped">○ 已停止 · Stopped</string>
+    <string name="online_count">在线 · Online: %1$d</string>
+    <string name="start">启动服务器 · Start server</string>
+    <string name="stop">停止 · Stop</string>
+
+    <string name="connect_title">怎么连接 · How to connect</string>
+    <string name="connect_hint">同一 Wi-Fi 或连上这台手机热点的设备，用下面任意一条命令进入（iPhone/iPad 用 Termius、Blink 等 SSH App）。手机流量网络通常无法从外网直连。\nDevices on the same Wi-Fi or on this phone\'s hotspot join with any line below (on iPhone/iPad use an SSH app such as Termius or Blink). Mobile data is usually not reachable from the internet.</string>
+    <string name="copy">复制 · Copy</string>
+    <string name="copied">已复制 · Copied</string>
+    <string name="no_network">没有网络连接 · No network</string>
+    <string name="fingerprint">主机指纹（首次连接时核对）· Host key fingerprint (check on first connect):\n%1$s</string>
+    <string name="fingerprint_none">主机密钥会在第一次启动时生成 · The host key is created on first start</string>
+
+    <string name="settings_title">设置（停止后才能修改）· Settings (stop to edit)</string>
+    <string name="port">端口 · Port (1024–65534)</string>
+    <string name="max_clients">最多同时在线 · Max online users</string>
+    <string name="rooms">公共房间（可选）· Public rooms (optional)</string>
+    <string name="rooms_hint">lobby:大厅,tech:技术</string>
+    <string name="extra">额外参数（高级，可选）· Extra flags (advanced, optional)</string>
+    <string name="extra_hint">-history-ttl 24h -msg-rate 2</string>
+    <string name="autostart">开机自动启动 · Start on boot</string>
+    <string name="battery">关闭电池优化（防止后台被杀）· Disable battery optimisation (keeps it alive)</string>
+
+    <string name="log_title">日志（不含任何用户信息）· Log (no user data)</string>
+    <string name="log_empty">还没有日志 · No log yet</string>
+
+    <string name="err_port">端口需在 1024–65534 之间 · Port must be 1024–65534</string>
+    <string name="err_max">请输入 1–100000 · Enter 1–100000</string>
+    <string name="err_start">无法启动服务器 · Could not start the server: %1$s</string>
+    <string name="err_crash">服务器连续启动失败（退出码 %1$d），请看日志，常见原因是端口被占用 · The server keeps failing (exit code %1$d); see the log — often the port is already in use</string>
+
+    <string name="channel_name">服务器状态 · Server status</string>
+    <string name="notif_title">VIVANT 聊天室运行中 · chat room running</string>
+    <string name="notif_text">端口 · port %1$d · 在线 · online %2$d</string>
+    <string name="notif_starting">启动中… · Starting…</string>
+</resources>

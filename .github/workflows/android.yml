@@ -1,0 +1,110 @@
+name: Android
+
+# Builds the Android APK: the Rust server cross-compiled with the NDK and
+# packed into a small app that runs it as a foreground service.
+# 构建安卓 APK（手机上运行的 VIVANT 服务器）。
+#
+# Stable signing (so updates install over each other): add the repository
+# secrets ANDROID_KEYSTORE_BASE64 (base64 of a .jks), ANDROID_KEYSTORE_PASSWORD,
+# ANDROID_KEY_ALIAS and optionally ANDROID_KEY_PASSWORD. Without them the APK
+# is signed with a throwaway debug key.
+on:
+  push:
+    branches: [main, android]
+    paths: ["android/**", "src/**", "Cargo.toml", "Cargo.lock", "VERSION", ".github/workflows/android.yml"]
+  pull_request:
+    paths: ["android/**", "src/**", "Cargo.toml", "Cargo.lock", ".github/workflows/android.yml"]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android
+
+      - name: Version
+        run: |
+          V="${{ inputs.version }}"
+          [ -n "$V" ] || V="v$(tr -d ' \n' < VERSION)"
+          echo "VIVANT_VERSION=$V" >> "$GITHUB_ENV"
+
+      - name: Server for Android (NDK)
+        run: |
+          set -o pipefail
+          echo "NDK: $ANDROID_NDK_LATEST_HOME"
+          android/build-native.sh 2>&1 | tee native.log
+          file android/app/src/main/jniLibs/*/libvivant.so
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Signing key
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KS" ]; then
+            echo "::notice::No ANDROID_KEYSTORE_BASE64 secret — APK is debug-signed"
+            exit 0
+          fi
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "VIVANT_KEYSTORE=$RUNNER_TEMP/release.jks"
+            echo "VIVANT_KEYSTORE_PASSWORD=$KS_PASS"
+            echo "VIVANT_KEY_ALIAS=$KEY_ALIAS"
+            echo "VIVANT_KEY_PASSWORD=${KEY_PASS:-$KS_PASS}"
+          } >> "$GITHUB_ENV"
+
+      - name: APK
+        run: |
+          set -o pipefail
+          gradle -p android --no-daemon assembleRelease 2>&1 | tee gradle.log
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          unzip -l "$apk" | grep libvivant.so
+          for abi in arm64-v8a armeabi-v7a x86_64; do unzip -l "$apk" | grep -q "lib/$abi/libvivant.so" || { echo "missing $abi"; exit 1; }; done
+          mkdir -p out && cp "$apk" out/vivant-android.apk
+          ls -l out
+
+      # Actions logs need a login even on a public repo; annotations don't, so
+      # surface the tail of a failed build there.
+      - name: Report failure
+        if: failure()
+        run: |
+          for f in native.log gradle.log; do
+            [ -f "$f" ] || continue
+            msg=$(grep -E "error|Error|ERROR|FAILED|What went wrong|^>|warning: unused" "$f" | tail -40)
+            [ -n "$msg" ] || msg=$(tail -40 "$f")
+            msg=${msg//'%'/'%25'}; msg=${msg//$'\n'/'%0A'}; msg=${msg//$'\r'/}
+            echo "::error title=$f::$msg"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vivant-android.apk
+          path: out/vivant-android.apk
+          if-no-files-found: error

@@ -1,0 +1,64 @@
+plugins {
+    id "com.android.application"
+}
+
+// Version comes from the repository's VERSION file (e.g. 0.11.4), or from
+// VIVANT_VERSION (v0.11.4) in CI, so the APK always matches the server.
+def rawVersion = (System.getenv("VIVANT_VERSION") ?: rootProject.file("../VERSION").text).trim().replaceFirst(/^v/, "")
+def nums = (rawVersion =~ /^(\d+)\.(\d+)\.(\d+)/)
+def code = nums.find() ? (nums.group(1).toInteger() * 10000 + nums.group(2).toInteger() * 100 + nums.group(3).toInteger()) : 1
+
+android {
+    namespace "io.github.freecode100year.vivant"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "io.github.freecode100year.vivant"
+        minSdk 26
+        targetSdk 35
+        versionCode code
+        versionName rawVersion
+    }
+
+    // Release signing: set VIVANT_KEYSTORE (path), VIVANT_KEYSTORE_PASSWORD,
+    // VIVANT_KEY_ALIAS, VIVANT_KEY_PASSWORD. Without them the release APK is
+    // signed with the debug key (fine for trying it out; updates need the
+    // same key every time).
+    def ks = System.getenv("VIVANT_KEYSTORE")
+    signingConfigs {
+        release {
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv("VIVANT_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("VIVANT_KEY_ALIAS")
+                keyPassword System.getenv("VIVANT_KEY_PASSWORD") ?: System.getenv("VIVANT_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig ks ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // The server is a real executable (libvivant.so) that the app starts as a
+    // child process; it must be extracted to nativeLibraryDir, the only place
+    // an app may execute files from.
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}

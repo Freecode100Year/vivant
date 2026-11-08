@@ -19,7 +19,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::watch;
 
 // musl's allocator is slow under many threads; mimalloc is the same
-// everywhere and keeps memory per session low.
+// everywhere and keeps memory per session low. (Android: bionic's allocator.)
+#[cfg(not(target_os = "android"))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 

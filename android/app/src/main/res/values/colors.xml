@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- eye-care green, high contrast (same idea as the SSH room's default) -->
+    <color name="bg">#C7EDCC</color>
+    <color name="card">#E3F5E5</color>
+    <color name="text">#0D1F12</color>
+    <color name="muted">#3A4A3E</color>
+    <color name="accent">#14532D</color>
+    <color name="on_accent">#FFFFFF</color>
+    <color name="ok">#0B6B2E</color>
+    <color name="warn">#8A4B00</color>
+    <color name="err">#9B1C1C</color>
+    <color name="log_bg">#0D1F12</color>
+    <color name="log_text">#C7EDCC</color>
+</resources>
