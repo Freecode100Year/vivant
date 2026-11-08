@@ -10,6 +10,15 @@
 2. 在手机上打开 APK，按提示允许「安装未知来源应用」。
 3. 需要 Android 8.0 及以上；支持 ARM64、ARMv7、x86_64。
 
+**两个版本：**
+
+| 版本 | 文件 | 内容 |
+| --- | --- | --- |
+| 完整版 | `vivant-android-arm64.apk`（通用：`vivant-android.apk`） | Tor 洋葱服务、EasyTier、FRP 三选一 |
+| EasyTier 版 | `vivant-android-easytier-arm64.apk`（通用：`vivant-android-easytier.apk`） | 只有 EasyTier（不记录 IP），更小、界面更简单；不用选模式，填好中继点「启动」即可 |
+
+两个版本可以同时安装（但别同时运行，会抢端口）。
+
 ## 使用
 
 1. 打开 VIVANT，点 **启动**。第一次会请求通知权限（用来显示常驻通知，可以拒绝，服务器照样运行）。

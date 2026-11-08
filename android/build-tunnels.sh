@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the bundled tunnel clients for Android from their official sources:
 #   easytier-core (EasyTier, Rust, + easytier-no-ip.patch) -> jniLibs/<abi>/libeasytier.so
-#   frpc          (frp, Go + cgo, no admin web UI)          -> jniLibs/<abi>/libfrpc.so
+#   frpc          (frp, Go + cgo, no admin web UI)          -> full/jniLibs/<abi>/libfrpc.so
 # Like libvivant.so these are plain executables, named .so so Android
 # extracts them where an app may run them. (Tor comes prebuilt from tor-android.)
 #
@@ -38,7 +38,8 @@ for abi in "${abis[@]}"; do
 	x86_64) triple=x86_64-linux-android clang=x86_64-linux-android$API-clang goarch=amd64 goarm= ;;
 	*) echo "unknown abi $abi" >&2; exit 1 ;;
 	esac
-	out=$here/app/src/main/jniLibs/$abi
+	# frpc is only in the full edition; EasyTier is in both
+	if [ "$tool" = frpc ]; then out=$here/app/src/full/jniLibs/$abi; else out=$here/app/src/main/jniLibs/$abi; fi
 	mkdir -p "$out"
 	case $tool in
 	easytier)

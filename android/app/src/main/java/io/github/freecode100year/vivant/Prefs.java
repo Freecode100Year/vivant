@@ -43,7 +43,11 @@ final class Prefs {
     static void setRunning(Context c, boolean on) { sp(c).edit().putBoolean("running", on).apply(); }
 
     // internet access
+    /** The EasyTier-only edition (no Tor, no FRP inside). */
+    static boolean easytierEdition(Context c) { return c.getResources().getBoolean(R.bool.edition_easytier); }
+
     static String tunnel(Context c) {
+        if (easytierEdition(c)) return TUNNEL_EASYTIER;
         String t = sp(c).getString("tunnel", TUNNEL_OFF);
         return TUNNEL_TOR.equals(t) || TUNNEL_FRP.equals(t) || TUNNEL_EASYTIER.equals(t) ? t : TUNNEL_OFF;
     }

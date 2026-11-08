@@ -51,6 +51,20 @@ configure<ApplicationExtension> {
         }
     }
 
+    // Two editions: "full" (Tor onion service, EasyTier, FRP) and "easytier"
+    // (EasyTier only: smaller, simpler). They install side by side.
+    flavorDimensions += "edition"
+    productFlavors {
+        create("full") {
+            dimension = "edition"
+        }
+        create("easytier") {
+            dimension = "edition"
+            applicationIdSuffix = ".easytier"
+            versionNameSuffix = "-easytier"
+        }
+    }
+
     // One APK per CPU type keeps downloads small; the universal one works everywhere.
     splits {
         abi {
@@ -83,9 +97,9 @@ configure<ApplicationExtension> {
 }
 
 dependencies {
-    // Tor itself (the same build Orbot uses) and its control-port library
-    implementation("info.guardianproject:tor-android:0.4.9.14")
-    implementation("info.guardianproject:jtorctl:0.4.5.7")
+    // full edition only: Tor itself (the same build Orbot uses) and its control-port library
+    add("fullImplementation", "info.guardianproject:tor-android:0.4.9.14")
+    add("fullImplementation", "info.guardianproject:jtorctl:0.4.5.7")
     // Snowflake / obfs4 / webtunnel bridges for censored networks (as in Orbot)
-    implementation("com.netzarchitekten:IPtProxy:5.7.0")
+    add("fullImplementation", "com.netzarchitekten:IPtProxy:5.7.0")
 }

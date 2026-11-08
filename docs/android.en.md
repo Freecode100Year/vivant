@@ -10,6 +10,15 @@ Turn an Android phone into a VIVANT chat server: install the APK, tap **Start**,
 2. Open it on the phone and allow "install unknown apps" when asked.
 3. Needs Android 8.0+; ARM64, ARMv7 and x86_64 are included.
 
+**Two editions:**
+
+| Edition | File | What's in it |
+| --- | --- | --- |
+| Full | `vivant-android-arm64.apk` (universal: `vivant-android.apk`) | Tor onion service, EasyTier or FRP |
+| EasyTier | `vivant-android-easytier-arm64.apk` (universal: `vivant-android-easytier.apk`) | EasyTier only (no IPs kept): smaller, simpler screen — no mode to pick, enter your relay and tap Start |
+
+Both can be installed side by side (don't run both at once: they'd fight over the port).
+
 ## Use
 
 1. Open VIVANT and tap **Start**. The first time it asks for notification permission (for the ongoing notification; the server runs either way).

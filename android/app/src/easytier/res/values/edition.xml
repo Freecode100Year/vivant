@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <bool name="edition_easytier">true</bool>
+    <string name="app_name">VIVANT ET</string>
+    <string name="net_title">外网访问：EasyTier（不记录 IP）· Internet access: EasyTier (no IPs kept)</string>
+</resources>

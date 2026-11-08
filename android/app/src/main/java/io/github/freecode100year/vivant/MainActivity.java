@@ -110,6 +110,12 @@ public class MainActivity extends Activity {
         }
 
         loadFields();
+        if (Prefs.easytierEdition(this)) {
+            // only EasyTier here: no mode to choose
+            tunnel.check(R.id.tunnel_et);
+            tunnel.setVisibility(View.GONE);
+            showTunnelGroups();
+        }
         tunnel.setOnCheckedChangeListener((g, id) -> {
             Prefs.sp(this).edit().putString("tunnel", tunnelFromRadio()).apply();
             showTunnelGroups();

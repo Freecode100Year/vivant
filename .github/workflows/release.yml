@@ -154,6 +154,8 @@ jobs:
 
           安卓手机当服务器（Tor 洋葱服务 / EasyTier / FRP，不暴露 IP）· Android phone as a server (Tor onion service / EasyTier / FRP, no exposed IPs): 大多数手机下载 `vivant-android-arm64.apk`，不确定就下 `vivant-android.apk`（通用版）· most phones: `vivant-android-arm64.apk`; not sure: `vivant-android.apk` (universal)（Android 8+，见 [docs/android.md](https://github.com/Freecode100Year/vivant/blob/main/docs/android.md) · see [docs/android.en.md](https://github.com/Freecode100Year/vivant/blob/main/docs/android.en.md)）
 
+          只要 EasyTier 的精简版（不含 Tor / FRP，更小）· EasyTier-only edition (no Tor / FRP, smaller): `vivant-android-easytier-arm64.apk`，通用版 · universal `vivant-android-easytier.apk`
+
           程序 Binaries: `vivant-linux-amd64` (x86_64), `vivant-linux-arm64` (ARM64, e.g. Oracle Ampere), `vivant-linux-armv7`；用 `SHA256SUMS` 校验 · verify with `SHA256SUMS`. (`ptterm-linux-*` are the same files under the old names.)
           EOF
           # --latest: a release from main is always the current one, even when an
