@@ -44,13 +44,13 @@ import java.util.Set;
 public class MainActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private TextView status, online, tunnelStatus, error, connect, netHint, netConnect, fingerprint, log, advToggle, logToggle;
-    private Button toggle, battery, torNew;
-    private EditText port, maxClients, rooms, extra, frpServer, frpServerPort, frpToken, frpRemotePort;
+    private Button toggle, battery, torNew, etNew;
+    private EditText port, maxClients, rooms, extra, etPeer, etName, etSecret, frpServer, frpServerPort, frpToken, frpRemotePort;
     private CheckBox autostart, allowLan;
     private RadioGroup tunnel, torBridges;
     private EditText torCustom;
     private TextView lanHint;
-    private View torGroup, frpGroup, advGroup;
+    private View torGroup, etGroup, frpGroup, advGroup;
     private ScrollView logScroll;
     private long shownLog = -1;
     private int tick;
@@ -86,6 +86,11 @@ public class MainActivity extends Activity {
         maxClients = findViewById(R.id.max_clients);
         rooms = findViewById(R.id.rooms);
         extra = findViewById(R.id.extra);
+        etNew = findViewById(R.id.et_new);
+        etPeer = findViewById(R.id.et_peer);
+        etName = findViewById(R.id.et_name);
+        etSecret = findViewById(R.id.et_secret);
+        etGroup = findViewById(R.id.et_group);
         frpServer = findViewById(R.id.frp_server);
         frpServerPort = findViewById(R.id.frp_server_port);
         frpToken = findViewById(R.id.frp_token);
@@ -115,6 +120,12 @@ public class MainActivity extends Activity {
         torBridges.setOnCheckedChangeListener((g, id) -> {
             Prefs.sp(this).edit().putString("tor_bridges", bridgesFromRadio()).apply();
             showTunnelGroups();
+        });
+        etNew.setOnClickListener(v -> {
+            Prefs.regenerateEasyTier(this);
+            etName.setText(Prefs.etName(this));
+            etSecret.setText(Prefs.etSecret(this));
+            tick = 0;
         });
         torNew.setOnClickListener(v -> {
             deleteTree(TorOnion.serviceDir(this));
@@ -163,6 +174,9 @@ public class MainActivity extends Activity {
         rooms.setText(Prefs.rooms(this));
         extra.setText(Prefs.extraArgs(this));
         autostart.setChecked(Prefs.autostart(this));
+        etPeer.setText(Prefs.etPeer(this));
+        etName.setText(Prefs.etName(this));
+        etSecret.setText(Prefs.etSecret(this));
         frpServer.setText(Prefs.frpServer(this));
         frpServerPort.setText(String.valueOf(Prefs.frpServerPort(this)));
         frpToken.setText(Prefs.frpToken(this));
@@ -172,13 +186,15 @@ public class MainActivity extends Activity {
         String bm = Prefs.torBridges(this);
         torBridges.check(TorOnion.BRIDGES_SNOWFLAKE.equals(bm) ? R.id.bridges_snowflake : TorOnion.BRIDGES_CUSTOM.equals(bm) ? R.id.bridges_custom : R.id.bridges_none);
         String t = Prefs.tunnel(this);
-        tunnel.check(Prefs.TUNNEL_TOR.equals(t) ? R.id.tunnel_tor : Prefs.TUNNEL_FRP.equals(t) ? R.id.tunnel_frp : R.id.tunnel_off);
+        tunnel.check(Prefs.TUNNEL_TOR.equals(t) ? R.id.tunnel_tor : Prefs.TUNNEL_EASYTIER.equals(t) ? R.id.tunnel_et
+                : Prefs.TUNNEL_FRP.equals(t) ? R.id.tunnel_frp : R.id.tunnel_off);
         showTunnelGroups();
     }
 
     private String tunnelFromRadio() {
         int id = tunnel.getCheckedRadioButtonId();
         if (id == R.id.tunnel_tor) return Prefs.TUNNEL_TOR;
+        if (id == R.id.tunnel_et) return Prefs.TUNNEL_EASYTIER;
         if (id == R.id.tunnel_frp) return Prefs.TUNNEL_FRP;
         return Prefs.TUNNEL_OFF;
     }
@@ -195,6 +211,7 @@ public class MainActivity extends Activity {
         torGroup.setVisibility(Prefs.TUNNEL_TOR.equals(t) ? View.VISIBLE : View.GONE);
         torCustom.setVisibility(TorOnion.BRIDGES_CUSTOM.equals(bridgesFromRadio()) ? View.VISIBLE : View.GONE);
         allowLan.setVisibility(Prefs.TUNNEL_OFF.equals(t) ? View.GONE : View.VISIBLE);
+        etGroup.setVisibility(Prefs.TUNNEL_EASYTIER.equals(t) ? View.VISIBLE : View.GONE);
         frpGroup.setVisibility(Prefs.TUNNEL_FRP.equals(t) ? View.VISIBLE : View.GONE);
     }
 
@@ -247,6 +264,15 @@ public class MainActivity extends Activity {
             torCustom.setError(getString(R.string.err_need));
             ok = false;
         }
+        String name = etName.getText().toString().trim(), secret = etSecret.getText().toString().trim();
+        if (Prefs.TUNNEL_EASYTIER.equals(t)) {
+            for (EditText e : new EditText[]{etPeer, etName, etSecret}) {
+                if (e.getText().toString().trim().isEmpty()) {
+                    e.setError(getString(R.string.err_need));
+                    ok = false;
+                }
+            }
+        }
         int fsp = parse(frpServerPort), frp = parse(frpRemotePort);
         String server = frpServer.getText().toString().trim();
         if (Prefs.TUNNEL_FRP.equals(t)) {
@@ -274,6 +300,9 @@ public class MainActivity extends Activity {
                 .putString("tor_bridges", bridgesFromRadio())
                 .putString("tor_custom_bridges", bridges)
                 .putBoolean("allow_lan", allowLan.isChecked())
+                .putString("et_peer", etPeer.getText().toString().trim())
+                .putString("et_name", name)
+                .putString("et_secret", secret)
                 .putString("frp_server", server)
                 .putInt("frp_server_port", fsp > 0 ? fsp : 7000)
                 .putString("frp_token", frpToken.getText().toString())
@@ -336,10 +365,10 @@ public class MainActivity extends Activity {
         error.setVisibility(err == null ? View.GONE : View.VISIBLE);
 
         boolean editable = !run && !wanted;
-        for (View v : new View[]{port, maxClients, rooms, extra,
+        for (View v : new View[]{port, maxClients, rooms, extra, etPeer, etName, etSecret, etNew,
                 frpServer, frpServerPort, frpToken, frpRemotePort, torCustom, allowLan, torNew,
                 findViewById(R.id.bridges_none), findViewById(R.id.bridges_snowflake), findViewById(R.id.bridges_custom),
-                findViewById(R.id.tunnel_off), findViewById(R.id.tunnel_tor), findViewById(R.id.tunnel_frp)}) {
+                findViewById(R.id.tunnel_off), findViewById(R.id.tunnel_tor), findViewById(R.id.tunnel_et), findViewById(R.id.tunnel_frp)}) {
             v.setEnabled(editable);
         }
 
@@ -377,6 +406,14 @@ public class MainActivity extends Activity {
                 cmd = "ssh -o ProxyCommand='nc -x 127.0.0.1:9150 %h %p' guest@" + onion
                         + "\n\ntorsocks ssh guest@" + onion;
             }
+        } else if (Prefs.TUNNEL_EASYTIER.equals(t)) {
+            String peer = etPeer.getText().toString().trim();
+            peer = peer.isEmpty() ? "tcp://…:11010" : peer.split("[,\\s]+")[0];
+            int p = parse(port);
+            int relay = p >= 1024 ? p + 2 : Prefs.relayPort(this);
+            cmd = Tunnels.easytierVisitorCommand(etName.getText().toString().trim(), etSecret.getText().toString().trim(), peer, relay)
+                    + "\n\nssh -p 2222 guest@127.0.0.1";
+            hint = getString(R.string.net_hint_et);
         } else if (Prefs.TUNNEL_FRP.equals(t)) {
             String server = frpServer.getText().toString().trim();
             int remote = parse(frpRemotePort);

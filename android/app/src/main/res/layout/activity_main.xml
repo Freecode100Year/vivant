@@ -158,6 +158,11 @@
                     android:text="@string/net_tor" />
 
                 <RadioButton
+                    android:id="@+id/tunnel_et"
+                    style="@style/Radio"
+                    android:text="@string/net_et" />
+
+                <RadioButton
                     android:id="@+id/tunnel_frp"
                     style="@style/Radio"
                     android:text="@string/net_frp" />
@@ -213,6 +218,48 @@
                     android:layout_width="wrap_content"
                     android:text="@string/tor_new" />
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/et_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView style="@style/Warn" android:text="@string/et_warn" />
+                <TextView style="@style/Hint" android:text="@string/et_hint" />
+
+                <TextView style="@style/Label" android:text="@string/et_peer" />
+                <EditText
+                    android:id="@+id/et_peer"
+                    style="@style/Field"
+                    android:fontFamily="monospace"
+                    android:hint="@string/et_peer_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="textUri" />
+
+                <TextView style="@style/Label" android:text="@string/et_name" />
+                <EditText
+                    android:id="@+id/et_name"
+                    style="@style/Field"
+                    android:fontFamily="monospace"
+                    android:importantForAutofill="no"
+                    android:inputType="text|textNoSuggestions" />
+
+                <TextView style="@style/Label" android:text="@string/et_secret" />
+                <EditText
+                    android:id="@+id/et_secret"
+                    style="@style/Field"
+                    android:fontFamily="monospace"
+                    android:importantForAutofill="no"
+                    android:inputType="text|textNoSuggestions" />
+
+                <Button
+                    android:id="@+id/et_new"
+                    style="@style/BtnLight"
+                    android:layout_width="wrap_content"
+                    android:text="@string/et_new" />
             </LinearLayout>
 
             <LinearLayout

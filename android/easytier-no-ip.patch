@@ -1,0 +1,17 @@
+diff --git a/easytier-core/src/connectivity/direct/mod.rs b/easytier-core/src/connectivity/direct/mod.rs
+index cf6269d..a58f681 100644
+--- a/easytier-core/src/connectivity/direct/mod.rs
++++ b/easytier-core/src/connectivity/direct/mod.rs
+@@ -1043,6 +1043,12 @@ where
+         _: BaseController,
+         _: GetIpListRequest,
+     ) -> rpc_types::error::Result<GetIpListResponse> {
++        // VIVANT: never tell other nodes this device's addresses (interface,
++        // STUN-public or listener IPs). P2P is off on the phone, so nothing
++        // needs them; anonymity does.
++        if true {
++            return Ok(GetIpListResponse::default());
++        }
+         let peer_manager = self.peer_manager.as_ref().and_then(Weak::upgrade);
+         let mut response = collect_address_observations(
+             self.host.as_ref(),

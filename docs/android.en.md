@@ -32,6 +32,7 @@ Phones usually sit behind carrier NAT, so nobody outside can connect directly. P
 | Mode | Who sees IP addresses | What you need | How others join |
 | --- | --- | --- | --- |
 | **Tor onion service** (recommended) | **Nobody**: visitors, this phone, the chat server and Tor relays never learn a visitor's IP, and visitors never learn the phone's | nothing | open Tor Browser or Orbot, `ssh guest@xxxx.onion` |
+| EasyTier (your own relay) | the phone and visitors never see each other's; the relay sees where connections come from while forwarding, but run as below it keeps no record | an EasyTier relay of your own (VPS abroad) | they install EasyTier, run the line the app shows, then `ssh -p 2222 guest@127.0.0.1` |
 | FRP (your own server) | only frps sees visitors' IPs; the phone and visitors don't see each other's | a VPS running frps that you control, outside China | `ssh -p PUBLIC_PORT guest@SERVER` |
 
 With either mode on, the chat server **listens on the phone itself (127.0.0.1) only** and the LAN entrance is closed; tick **Also allow LAN / hotspot** if you want it.
@@ -59,25 +60,48 @@ Android visitors: Orbot plus Termux (`torsocks ssh guest@xxxx.onion`), or Orbot'
 
 The `.onion` address itself proves the server's identity; there's no host key fingerprint to check.
 
+### EasyTier (your own relay, no IPs kept)
+
+Normally EasyTier shares every node's public IP (found with STUN) and interface addresses with all nodes in the network, for hole punching. The app turns all of that off:
+
+- The phone's EasyTier carries a small patch ([`android/easytier-no-ip.patch`](../android/easytier-no-ip.patch)): when another node asks for this device's addresses (`GetIpList`), the answer is always "none".
+- P2P, hole punching, STUN and IPv6 are off and no port is opened: the phone only talks to your relay, never directly to a visitor.
+- The command the app shows visitors turns STUN and P2P off too (`--stun-servers --disable-p2p --no-listener`), so visitors don't share their public IP either.
+- Any IP-looking string in EasyTier's output is replaced with `•.•.•.•` before it reaches the app's log.
+- No public relay by default: a public relay is someone else's machine, and whether it keeps records isn't up to you.
+
+The relay (on a VPS abroad, **writing no logs at all**):
+
+```bash
+easytier-core --network-name any --network-secret any -l tcp://0.0.0.0:11010 \
+  --stun-servers --console-log-level off --file-log-level off
+```
+
+While forwarding, a relay necessarily knows where a connection comes from (that's TCP); with logging off nothing is kept. Visitors run (the app fills in the name, password and your relay):
+
+```
+easytier-core --no-tun -d --no-listener --disable-p2p --stun-servers --network-name vivant-xxxx --network-secret xxxx -p tcp://YOUR_VPS:11010 --port-forward tcp://127.0.0.1:2222/10.144.144.1:2224
+ssh -p 2222 guest@127.0.0.1
+```
+
+No admin rights needed. Note: a visitor who joins with the EasyTier GUI's defaults instead keeps STUN and P2P on and may share their IP with others in the network — have visitors copy the command.
+
 ### FRP (your own server)
 
 Run frps on a VPS (`bindPort`, optional `auth.token`), fill in server, port, token and public port in the app, and open the public port in the VPS firewall. Visitors install nothing, but **frps sees every visitor's IP**, so only use it where you fully trust that server. The app never turns on frp's Proxy Protocol, so visitors' IPs stay on frps and never reach the phone.
 
-### Why there is no EasyTier
-
-An earlier version bundled EasyTier; it was removed. EasyTier nodes share their STUN-detected public IPs and interface addresses with every node in the network (route info and the `GetIpList` RPC), even with P2P off — so visitors could learn the phone's IP and each other's, which defeats the goal of keeping anonymous users' IPs hidden.
-
 ### Limits
 
-Everyone arriving through Tor or FRP looks like the phone itself to the server, so they come in through separate local entrances (`-onion-addr` for Tor, `-relay-addr` for FRP) and share generous limits (300 at once, 120 new connections a minute) instead of one address's small quota.
+Everyone arriving through Tor, EasyTier or FRP looks like the phone itself to the server, so they come in through separate local entrances (`-onion-addr` for Tor, `-relay-addr` for EasyTier / FRP) and share generous limits (300 at once, 120 new connections a minute) instead of one address's small quota.
 
 ## Visitors' IPs stay hidden: layer by layer
 
 | Layer | How |
 | --- | --- |
-| Connections into the phone | with Tor / FRP every visitor appears as `127.0.0.1`, so the chat server can't get a visitor's IP even from the OS; LAN entrance closed by default |
+| Connections into the phone | with Tor / EasyTier / FRP every visitor appears as `127.0.0.1`, so the chat server can't get a visitor's IP even from the OS; LAN entrance closed by default |
 | Chat server | records and shows no addresses: the log holds only its own listen addresses, `/who` and friends show nicknames only; rate limits use an address hash salted afresh on every start, in memory only |
 | Tor | no SOCKS / HTTP proxy port (other apps can neither use nor probe it); `SafeLogging 1`, nothing in the system log (logcat) |
+| EasyTier | patched not to answer address queries; P2P, hole punching, STUN, IPv6 and listeners off; addresses masked in the log; relay writes no logs |
 | FRP | no Proxy Protocol; frpc never knows visitors' IPs in the first place |
 | App | never writes to Android's log (logcat) or log files; "Log" is the last 400 lines in memory, gone on stop or exit; chat is in memory only |
 
@@ -111,16 +135,17 @@ Same as on a VPS: no accounts, no IPs / nicknames / messages in the log, chat ke
 
 ## Build it yourself
 
-Needs Rust, the Android NDK (r25+), JDK 24+, and Gradle 9.8+ or Android Studio; frpc also needs Go:
+Needs Rust, the Android NDK (r25+), JDK 24+, and Gradle 9.8+ or Android Studio; EasyTier / frpc also need protoc, cmake and Go:
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 export ANDROID_NDK_HOME=/path/to/ndk
 android/build-native.sh               # VIVANT server -> jniLibs/*/libvivant.so
+android/build-tunnels.sh easytier     # EasyTier (patch applied) -> jniLibs/*/libeasytier.so
 android/build-tunnels.sh frpc         # frpc -> jniLibs/*/libfrpc.so
 gradle -p android assembleRelease     # -> android/app/build/outputs/apk/release/
 ```
 
-frpc is built from its official source at the version pinned in `android/tunnels.env`; Tor and the bridges are Guardian Project's (Orbot's developers) `tor-android` and IPtProxy, exactly as in Orbot. The VIVANT server and frpc are packed as `lib*.so` (really plain executables) so Android extracts them to the app's native library directory — the only place an app may execute programs from; a foreground service runs them as child processes. Tor runs inside the app process.
+EasyTier and frpc are built from their official sources at the versions pinned in `android/tunnels.env` (EasyTier with `easytier-no-ip.patch`); Tor and the bridges are Guardian Project's (Orbot's developers) `tor-android` and IPtProxy, exactly as in Orbot. The VIVANT server, EasyTier and frpc are packed as `lib*.so` (really plain executables) so Android extracts them to the app's native library directory — the only place an app may execute programs from; a foreground service runs them as child processes. Tor runs inside the app process.
 
 **Signing:** without configuration the APK is debug-signed, with a different key on every CI run, so uninstall the old one before updating. For stable signing add the repository secrets `ANDROID_KEYSTORE_BASE64` (base64 of a `.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (optionally `ANDROID_KEY_PASSWORD`). Locally use `VIVANT_KEYSTORE`, `VIVANT_KEYSTORE_PASSWORD`, `VIVANT_KEY_ALIAS`, `VIVANT_KEY_PASSWORD`.

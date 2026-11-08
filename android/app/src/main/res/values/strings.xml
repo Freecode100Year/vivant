@@ -34,6 +34,15 @@
     <string name="net_title">外网访问 · Internet access</string>
     <string name="net_off">关闭（只限局域网 / 热点）· Off (LAN / hotspot only)</string>
     <string name="net_tor">Tor 洋葱服务（推荐：谁都看不到 IP）· Tor onion service (recommended: no one sees any IP)</string>
+    <string name="net_et">EasyTier（自己的中继，不记录 IP）· EasyTier (your own relay, no IPs kept)</string>
+    <string name="et_warn">⚠ 中继在转发时能看到连接来源；请用你自己的、不记录日志的中继，最好不在中国。· The relay sees where connections come from while forwarding; use your own relay with logging off, ideally outside China.</string>
+    <string name="et_hint">只走中继：手机不报告自己的地址，关闭点对点、打洞和 STUN，手机和访客互相看不到 IP，日志里的地址也会打码。对方也要装 EasyTier。· Relay only: the phone never reports its addresses; P2P, hole punching and STUN are off, so the phone and visitors never see each other\'s IP, and addresses in the log are masked. Visitors install EasyTier too.</string>
+    <string name="et_peer">中继节点（必填，你自己的）· Relay node (required, your own)</string>
+    <string name="et_peer_hint">tcp://your-vps:11010</string>
+    <string name="et_name">网络名 · Network name</string>
+    <string name="et_secret">网络密码 · Network password</string>
+    <string name="et_new">换一组 · New pair</string>
+    <string name="net_hint_et">外网的人：先装 EasyTier（easytier.cn），再依次运行下面两行 · From anywhere: install EasyTier (easytier.cn), then run these two lines:</string>
     <string name="net_frp">FRP（自己的服务器：服务器能看到访客 IP）· FRP (your own server: it sees visitors\' IPs)</string>
     <string name="tor_hint">手机会生成一个 .onion 地址。访客、你自己的手机、聊天服务器三方都看不到彼此的 IP，运营商只能看到「在用 Tor」。访客需要 Tor Browser 或 Orbot。· The phone gets a .onion address. Visitors, this phone and the chat server never see each other\'s IP; the network only sees \"Tor\". Visitors need Tor Browser or Orbot.</string>
     <string name="tor_bridges">连接 Tor 的方式 · How to reach Tor</string>

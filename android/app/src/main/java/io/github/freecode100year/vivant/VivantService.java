@@ -163,12 +163,13 @@ public class VivantService extends Service {
             updateNotification();
             return;
         }
+        final String kind = tunnelKind;
         ServerState.tunnel = ServerState.TUNNEL_CONNECTING;
         try {
-            tunnel.start(Tunnels.command(this), tunnelDir(), env(), new Child.Listener() {
+            tunnel.start(Tunnels.command(this, kind), tunnelDir(), env(), new Child.Listener() {
                 @Override
                 public void onLine(String line) {
-                    String shown = Tunnels.onLine(line);
+                    String shown = Tunnels.onLine(kind, line);
                     if (shown != null) ServerState.log(shown);
                     if (ServerState.tunnel == ServerState.TUNNEL_UP) tunnelFails = 0;
                 }

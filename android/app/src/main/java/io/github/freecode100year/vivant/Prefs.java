@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import java.security.SecureRandom;
+import java.util.UUID;
 
 /** User settings, kept in the app's private SharedPreferences. */
 final class Prefs {
@@ -13,6 +14,11 @@ final class Prefs {
     static final String TUNNEL_OFF = "off";
     static final String TUNNEL_FRP = "frp";
     static final String TUNNEL_TOR = "tor";
+    static final String TUNNEL_EASYTIER = "easytier";
+
+    /** This phone's address inside the EasyTier network. */
+    static final String ET_IP = "10.144.144.1";
+    static final String ET_IP_PREFIX = "10.144.144.";
 
     private Prefs() {}
 
@@ -39,7 +45,23 @@ final class Prefs {
     // internet access
     static String tunnel(Context c) {
         String t = sp(c).getString("tunnel", TUNNEL_OFF);
-        return TUNNEL_TOR.equals(t) || TUNNEL_FRP.equals(t) ? t : TUNNEL_OFF; // EasyTier was removed
+        return TUNNEL_TOR.equals(t) || TUNNEL_FRP.equals(t) || TUNNEL_EASYTIER.equals(t) ? t : TUNNEL_OFF;
+    }
+    static String etName(Context c) { return generated(c, "et_name", "vivant-", 10); }
+    static String etSecret(Context c) { return generated(c, "et_secret", "", 16); }
+    /** Relay node(s): the user's own. No public default — whoever runs the relay sees connections. */
+    static String etPeer(Context c) { return sp(c).getString("et_peer", "").trim(); }
+    static String etMachineId(Context c) {
+        String id = sp(c).getString("et_machine_id", null);
+        if (id == null) {
+            id = UUID.randomUUID().toString();
+            sp(c).edit().putString("et_machine_id", id).apply();
+        }
+        return id;
+    }
+    /** A new random EasyTier network name and password (the old ones stop working). */
+    static void regenerateEasyTier(Context c) {
+        sp(c).edit().putString("et_name", "vivant-" + random(10)).putString("et_secret", random(16)).apply();
     }
     static String torBridges(Context c) { return sp(c).getString("tor_bridges", TorOnion.BRIDGES_NONE); }
     static String torCustomBridges(Context c) { return sp(c).getString("tor_custom_bridges", ""); }

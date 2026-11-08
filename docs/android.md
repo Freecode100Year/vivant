@@ -32,6 +32,7 @@
 | 方式 | 谁能看到 IP | 需要什么 | 别人怎么进 |
 | --- | --- | --- | --- |
 | **Tor 洋葱服务**（推荐） | **谁都看不到**：访客、这台手机、聊天服务器、Tor 中继都不知道访客的 IP，访客也不知道手机的 IP | 什么都不用准备 | 打开 Tor Browser 或 Orbot，`ssh guest@xxxx.onion` |
+| EasyTier（自己的中继） | 手机和访客彼此看不到；中继转发时能看到连接来源，但用下面的命令运行时什么都不记录 | 一台你自己的 EasyTier 中继（海外 VPS） | 对方装 EasyTier，运行 App 里显示的命令，再 `ssh -p 2222 guest@127.0.0.1` |
 | FRP（自己的服务器） | 只有 frps 能看到访客的 IP；手机和访客彼此看不到 | 一台运行 frps、你自己控制且不在中国的 VPS | 直接 `ssh -p 外网端口 guest@服务器` |
 
 开启任何一种外网访问后，聊天服务器**只监听手机本机（127.0.0.1）**，局域网入口默认关闭；需要时可以勾选「同时允许局域网 / 热点直连」。
@@ -59,25 +60,48 @@ torsocks ssh guest@xxxx.onion
 
 `.onion` 地址本身就是服务器身份的证明，不需要另外核对主机指纹。
 
+### EasyTier（自己的中继，不记录 IP）
+
+EasyTier 正常情况下会把每个节点的公网 IP（STUN 探测到的）和网卡地址同步给网络里的所有节点，用来打洞直连。App 把这些都关掉了：
+
+- 手机用的 EasyTier 打了一个小补丁（[`android/easytier-no-ip.patch`](../android/easytier-no-ip.patch)）：别的节点来查本机地址（`GetIpList`）时，一律回答「没有」。
+- 关闭点对点、打洞、STUN、IPv6，也不开任何监听端口：手机只连你的中继，从不和访客直接相连。
+- App 显示给访客的命令同样关掉 STUN 和点对点（`--stun-servers --disable-p2p --no-listener`），访客也不会把自己的公网 IP 同步出去。
+- EasyTier 输出里任何像 IP 的字符串，在进入 App 日志前就被替换成 `•.•.•.•`。
+- 没有默认的公共中继：公共中继是别人的机器，记不记录由不得你。
+
+中继（海外 VPS 上运行，**不写任何日志**）：
+
+```bash
+easytier-core --network-name 任意 --network-secret 任意 -l tcp://0.0.0.0:11010 \
+  --stun-servers --console-log-level off --file-log-level off
+```
+
+中继在转发的那一刻必然知道连接从哪里来（TCP 本身如此），关掉日志就不会留下记录。访客运行的命令（App 里会显示网络名、密码和你的中继）：
+
+```
+easytier-core --no-tun -d --no-listener --disable-p2p --stun-servers --network-name vivant-xxxx --network-secret xxxx -p tcp://你的VPS:11010 --port-forward tcp://127.0.0.1:2222/10.144.144.1:2224
+ssh -p 2222 guest@127.0.0.1
+```
+
+不需要管理员权限。注意：访客如果不用这行命令、而是用 EasyTier 图形版默认设置加入，它会开着 STUN 和点对点，可能把自己的 IP 同步给网络里的其他人——请让访客照抄命令。
+
 ### FRP（自己的服务器）
 
 在 VPS 上装好 frps（`bindPort`，可选 `auth.token`），在 App 里填服务器地址、端口、令牌和外网端口，并在 VPS 防火墙放行外网端口。访客什么都不用装，但 **frps 能看到每个访客的 IP**，所以只适合你完全信任那台服务器的场合。App 永远不开启 frp 的 Proxy Protocol，所以访客的 IP 只停留在 frps，不会传到手机上。
 
-### 为什么没有 EasyTier
-
-早先的版本集成过 EasyTier，已经移除：EasyTier 的节点会把自己通过 STUN 探测到的公网 IP 和网卡地址同步给同一网络里的所有节点（路由信息和 `GetIpList` 接口），即使关掉点对点也一样。也就是说访客能拿到手机的 IP，访客之间也能互相拿到 IP，和「匿名用户 IP 不暴露」的目标冲突。
-
 ### 限额
 
-经 Tor / FRP 进来的连接在服务器看来都来自本机，所以它们走单独的本地入口（Tor 用 `-onion-addr`，FRP 用 `-relay-addr`），共用一组宽松限额（同时 300 人、每分钟 120 个新连接），而不是挤在一个地址的小限额里。
+经 Tor / EasyTier / FRP 进来的连接在服务器看来都来自本机，所以它们走单独的本地入口（Tor 用 `-onion-addr`，EasyTier / FRP 用 `-relay-addr`），共用一组宽松限额（同时 300 人、每分钟 120 个新连接），而不是挤在一个地址的小限额里。
 
 ## 访客 IP 不暴露：各层怎么保证
 
 | 层 | 做法 |
 | --- | --- |
-| 进入手机的连接 | Tor / FRP 模式下，所有访客连接在手机上都显示为 `127.0.0.1`，聊天服务器从系统层面就拿不到访客 IP；局域网入口默认关闭 |
+| 进入手机的连接 | Tor / EasyTier / FRP 模式下，所有访客连接在手机上都显示为 `127.0.0.1`，聊天服务器从系统层面就拿不到访客 IP；局域网入口默认关闭 |
 | 聊天服务器 | 不记录、不显示任何地址：日志里只有自己的监听地址，`/who` 等命令只显示昵称；限流用的是每次启动随机加盐的地址哈希，只在内存里 |
 | Tor | 手机不开 SOCKS / HTTP 代理端口（其他 App 用不了、也探测不到）；`SafeLogging 1`，日志不进系统 logcat |
+| EasyTier | 补丁后不回答地址查询；关闭点对点、打洞、STUN、IPv6、监听端口；日志里的地址打码；中继不写日志 |
 | FRP | 不开 Proxy Protocol；frpc 本来就不知道访客 IP |
 | App | 不调用 Android 日志（logcat），不写日志文件；「日志」只是内存里最近 400 行，停止或退出就没了；聊天记录只在内存里 |
 
@@ -111,16 +135,17 @@ adb shell netstat -tn | grep -E ":2222|:2225"  # Tor 模式下只应看到 127.0
 
 ## 自己构建
 
-需要 Rust、Android NDK（r25+）、JDK 24+、Gradle 9.8+ 或 Android Studio；frpc 另需 Go：
+需要 Rust、Android NDK（r25+）、JDK 24+、Gradle 9.8+ 或 Android Studio；EasyTier / frpc 另需 protoc、cmake、Go：
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 export ANDROID_NDK_HOME=/path/to/ndk
 android/build-native.sh               # VIVANT 服务器 → jniLibs/*/libvivant.so
+android/build-tunnels.sh easytier     # EasyTier（自动打补丁）→ jniLibs/*/libeasytier.so
 android/build-tunnels.sh frpc         # frpc → jniLibs/*/libfrpc.so
 gradle -p android assembleRelease     # → android/app/build/outputs/apk/release/
 ```
 
-frpc 从官方源码按 `android/tunnels.env` 里固定的版本编译；Tor 和网桥用 Guardian Project（Orbot 的开发者）发布的 `tor-android` 和 IPtProxy，和 Orbot 完全相同。VIVANT 服务器和 frpc 以 `lib*.so` 的名字打进 APK（其实是普通可执行文件），这样安卓会把它们解压到 App 的原生库目录——App 唯一允许执行程序的地方；前台服务用子进程启动它们。Tor 在 App 进程里运行。
+EasyTier 和 frpc 从官方源码按 `android/tunnels.env` 里固定的版本编译（EasyTier 打上 `easytier-no-ip.patch`）；Tor 和网桥用 Guardian Project（Orbot 的开发者）发布的 `tor-android` 和 IPtProxy，和 Orbot 完全相同。VIVANT 服务器、EasyTier 和 frpc 以 `lib*.so` 的名字打进 APK（其实是普通可执行文件），这样安卓会把它们解压到 App 的原生库目录——App 唯一允许执行程序的地方；前台服务用子进程启动它们。Tor 在 App 进程里运行。
 
 **签名：** 不设置时用调试密钥签名，每次 CI 构建的密钥不同，升级前要先卸载旧版。想要稳定签名，在仓库 Secrets 里添加 `ANDROID_KEYSTORE_BASE64`（`.jks` 文件的 base64）、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`（可选 `ANDROID_KEY_PASSWORD`）。本地构建用环境变量 `VIVANT_KEYSTORE`、`VIVANT_KEYSTORE_PASSWORD`、`VIVANT_KEY_ALIAS`、`VIVANT_KEY_PASSWORD`。
