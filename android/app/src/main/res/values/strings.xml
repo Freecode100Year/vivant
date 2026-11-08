@@ -37,9 +37,9 @@
     <string name="net_tor">Tor 洋葱服务（推荐：谁都看不到 IP）· Tor onion service (recommended: no one sees any IP)</string>
     <string name="net_et">EasyTier（自己的中继节点）· EasyTier (your own relay)</string>
     <string name="net_frp">FRP（自己的服务器）· FRP (your own server)</string>
-    <string name="tor_hint">手机会生成一个 .onion 地址。访客、你自己的手机、聊天服务器三方都看不到彼此的 IP，运营商只能看到「在用 Tor」。访客需要 Tor Browser 或 Orbot。· The phone gets a .onion address. Visitors, this phone and the chat server never see each other's IP; the network only sees "Tor". Visitors need Tor Browser or Orbot.</string>
+    <string name="tor_hint">手机会生成一个 .onion 地址。访客、你自己的手机、聊天服务器三方都看不到彼此的 IP，运营商只能看到「在用 Tor」。访客需要 Tor Browser 或 Orbot。· The phone gets a .onion address. Visitors, this phone and the chat server never see each other\'s IP; the network only sees \"Tor\". Visitors need Tor Browser or Orbot.</string>
     <string name="tor_bridges">连接 Tor 的方式 · How to reach Tor</string>
-    <string name="bridges_none">直连（Tor 没被封锁的地方）· Direct (where Tor isn't blocked)</string>
+    <string name="bridges_none">直连（Tor 没被封锁的地方）· Direct (where Tor isn\'t blocked)</string>
     <string name="bridges_snowflake">Snowflake 网桥（中国等封锁 Tor 的地方）· Snowflake bridge (China and other censored networks)</string>
     <string name="bridges_custom">自定义网桥（obfs4 / webtunnel…）· Custom bridges (obfs4 / webtunnel…)</string>
     <string name="bridges_custom_hint">obfs4 1.2.3.4:443 FINGERPRINT cert=… iat-mode=0
@@ -47,11 +47,11 @@
     <string name="tor_new">换一个新 .onion 地址 · New .onion address</string>
     <string name="tor_new_done">旧地址已作废，下次启动会生成新地址 · Old address retired; a new one is made on the next start</string>
     <string name="tor_allow_lan">同时允许局域网 / 热点直连（会暴露局域网地址）· Also allow LAN / hotspot (reveals local addresses)</string>
-    <string name="et_warn">⚠ 中继节点能看到访客和这台手机的 IP。只用你自己控制、且不在中国的节点。· The relay sees visitors' and this phone's IPs. Only use a node you control, outside China.</string>
-    <string name="et_hint">已关闭点对点直连，所有流量只走中继，手机和访客互相看不到 IP。对方也要装 EasyTier。· P2P is off: everything goes through the relay, so this phone and visitors never see each other's IP. Visitors install EasyTier too.</string>
+    <string name="et_warn">⚠ 中继节点能看到访客和这台手机的 IP。只用你自己控制、且不在中国的节点。· The relay sees visitors\' and this phone\'s IPs. Only use a node you control, outside China.</string>
+    <string name="et_hint">已关闭点对点直连，所有流量只走中继，手机和访客互相看不到 IP。对方也要装 EasyTier。· P2P is off: everything goes through the relay, so this phone and visitors never see each other\'s IP. Visitors install EasyTier too.</string>
     <string name="et_peer">中继节点（必填，你自己的）· Relay node (required, your own)</string>
     <string name="et_peer_hint">tcp://your-vps:11010</string>
-    <string name="frp_warn">⚠ frps 服务器能看到每个访客的 IP。· The frps server sees every visitor's IP.</string>
+    <string name="frp_warn">⚠ frps 服务器能看到每个访客的 IP。· The frps server sees every visitor\'s IP.</string>
     <string name="et_name">网络名 · Network name</string>
     <string name="et_secret">网络密码 · Network password</string>
     <string name="et_new">换一组 · New pair</string>
