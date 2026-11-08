@@ -68,6 +68,8 @@ Manage it with `sudo vivant-ctl status | upgrade | uninstall`. If people can't c
 
 **Server can't reach GitHub:** download the offline one-click installer from the release page and run `bash vivant-<version>-linux-offline.sh --to root@SERVER` on your computer, see [Offline install](docs/deploy.en.md#offline-install-server-cant-reach-github). For a temporary server on Windows / macOS (testing, LAN), the release page has those binaries too, see [Deployment and configuration](docs/deploy.en.md#windows--macos).
 
+**An Android phone as the server:** install `vivant-android.apk`, tap "Start server", and people on the same Wi-Fi or the phone's hotspot can join — handy for meetups, classrooms and offline places, see [Android phone as a server](docs/android.en.md).
+
 **Upgrading from Private-Talk Terminal:** VIVANT used to be called Private-Talk Terminal (`ptterm`). Run the command above once on the old server and it migrates automatically, keeping the host key, configuration, bans and onion address. See [Deployment and configuration](docs/deploy.en.md#migrating-from-private-talk-terminal).
 
 A 1-core, 1 GB VPS handles about 2000 people online at once. Installer options, admins and settings: [Deployment and configuration](docs/deploy.en.md).
@@ -93,6 +95,7 @@ Improvements chosen after studying similar projects (ssh-chat, devzat, SoftRoom,
 
 ## Documentation
 
+- [Android phone as a server](docs/android.en.md): installing the APK, hotspot / LAN connections, building it
 - [Connecting and using](docs/usage.en.md): every platform, iPhone step by step, all commands, Tor
 - [AI agents](docs/agents.en.md): `bot@` JSON mode, example program
 - [Security and anonymity](docs/security.en.md): what the operator can see and what can't be promised
