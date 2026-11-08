@@ -10,11 +10,11 @@ import java.util.UUID;
 final class Prefs {
     static final int DEFAULT_PORT = 2222;
     static final int DEFAULT_MAX_CLIENTS = 100;
-    static final String DEFAULT_ET_PEER = "tcp://public.easytier.top:11010";
 
     static final String TUNNEL_OFF = "off";
     static final String TUNNEL_EASYTIER = "easytier";
     static final String TUNNEL_FRP = "frp";
+    static final String TUNNEL_TOR = "tor";
 
     /** This phone's address inside the EasyTier network. */
     static final String ET_IP = "10.144.144.1";
@@ -31,6 +31,8 @@ final class Prefs {
     static int healthPort(Context c) { return port(c) + 1; }
     /** Local-only listener the tunnels forward to; everyone through it shares generous limits. */
     static int relayPort(Context c) { return port(c) + 2; }
+    /** Local-only listener the onion service forwards to. */
+    static int onionLocalPort(Context c) { return port(c) + 3; }
     static int maxClients(Context c) { return sp(c).getInt("max_clients", DEFAULT_MAX_CLIENTS); }
     static String rooms(Context c) { return sp(c).getString("rooms", ""); }
     static String extraArgs(Context c) { return sp(c).getString("extra_args", ""); }
@@ -43,10 +45,12 @@ final class Prefs {
     static String tunnel(Context c) { return sp(c).getString("tunnel", TUNNEL_OFF); }
     static String etName(Context c) { return generated(c, "et_name", "vivant-", 10); }
     static String etSecret(Context c) { return generated(c, "et_secret", "", 16); }
-    static String etPeer(Context c) {
-        String p = sp(c).getString("et_peer", "").trim();
-        return p.isEmpty() ? DEFAULT_ET_PEER : p;
-    }
+    /** Relay node(s) — the user's own; there is deliberately no public default (it would see everyone's IP). */
+    static String etPeer(Context c) { return sp(c).getString("et_peer", "").trim(); }
+    static String torBridges(Context c) { return sp(c).getString("tor_bridges", TorOnion.BRIDGES_NONE); }
+    static String torCustomBridges(Context c) { return sp(c).getString("tor_custom_bridges", ""); }
+    /** With Tor on: also accept direct LAN / hotspot connections (those reveal local addresses). */
+    static boolean torAllowLan(Context c) { return sp(c).getBoolean("tor_allow_lan", false); }
     static String etMachineId(Context c) {
         String id = sp(c).getString("et_machine_id", null);
         if (id == null) {

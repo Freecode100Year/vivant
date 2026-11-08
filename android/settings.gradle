@@ -10,6 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Guardian Project (Orbot): Tor for Android
+        maven { url "https://raw.githubusercontent.com/guardianproject/gpmaven/master" }
     }
 }
 rootProject.name = "vivant-android"

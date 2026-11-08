@@ -100,6 +100,7 @@
                 android:text="@string/connect_title" />
 
             <TextView
+                android:id="@+id/lan_hint"
                 style="@style/Hint"
                 android:layout_marginTop="4dp"
                 android:text="@string/connect_lan" />
@@ -152,6 +153,11 @@
                     android:text="@string/net_off" />
 
                 <RadioButton
+                    android:id="@+id/tunnel_tor"
+                    style="@style/Radio"
+                    android:text="@string/net_tor" />
+
+                <RadioButton
                     android:id="@+id/tunnel_et"
                     style="@style/Radio"
                     android:text="@string/net_et" />
@@ -163,13 +169,85 @@
             </RadioGroup>
 
             <LinearLayout
+                android:id="@+id/tor_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView style="@style/Hint" android:text="@string/tor_hint" />
+
+                <TextView style="@style/Label" android:text="@string/tor_bridges" />
+                <RadioGroup
+                    android:id="@+id/tor_bridges"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <RadioButton
+                        android:id="@+id/bridges_none"
+                        style="@style/Radio"
+                        android:text="@string/bridges_none" />
+
+                    <RadioButton
+                        android:id="@+id/bridges_snowflake"
+                        style="@style/Radio"
+                        android:text="@string/bridges_snowflake" />
+
+                    <RadioButton
+                        android:id="@+id/bridges_custom"
+                        style="@style/Radio"
+                        android:text="@string/bridges_custom" />
+                </RadioGroup>
+
+                <EditText
+                    android:id="@+id/tor_custom_bridges"
+                    style="@style/Field"
+                    android:fontFamily="monospace"
+                    android:gravity="top"
+                    android:hint="@string/bridges_custom_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="textMultiLine|textNoSuggestions"
+                    android:minLines="3"
+                    android:singleLine="false"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/tor_new"
+                    style="@style/BtnLight"
+                    android:layout_width="wrap_content"
+                    android:text="@string/tor_new" />
+
+                <CheckBox
+                    android:id="@+id/tor_allow_lan"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:buttonTint="@color/accent"
+                    android:minHeight="48dp"
+                    android:text="@string/tor_allow_lan"
+                    android:textColor="@color/text"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/et_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:visibility="gone">
 
+                <TextView style="@style/Warn" android:text="@string/et_warn" />
                 <TextView style="@style/Hint" android:text="@string/et_hint" />
+
+                <TextView style="@style/Label" android:text="@string/et_peer" />
+                <EditText
+                    android:id="@+id/et_peer"
+                    style="@style/Field"
+                    android:fontFamily="monospace"
+                    android:hint="@string/et_peer_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="textUri" />
 
                 <TextView style="@style/Label" android:text="@string/et_name" />
                 <EditText
@@ -201,6 +279,7 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
+                <TextView style="@style/Warn" android:text="@string/frp_warn" />
                 <TextView style="@style/Hint" android:text="@string/frp_hint" />
 
                 <TextView style="@style/Label" android:text="@string/frp_server" />
@@ -274,15 +353,6 @@
                 android:hint="@string/rooms_hint"
                 android:importantForAutofill="no"
                 android:inputType="text" />
-
-            <TextView style="@style/Label" android:text="@string/et_peer" />
-            <EditText
-                android:id="@+id/et_peer"
-                style="@style/Field"
-                android:fontFamily="monospace"
-                android:hint="@string/et_peer_default"
-                android:importantForAutofill="no"
-                android:inputType="textUri" />
 
             <TextView style="@style/Label" android:text="@string/extra" />
             <EditText

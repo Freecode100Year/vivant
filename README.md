@@ -68,7 +68,7 @@ curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install
 
 **服务器连不上 GitHub：** 下载发布页里的离线一键安装包，在自己电脑上运行 `bash vivant-<版本>-linux-offline.sh --to root@服务器` 即可部署，见[离线安装](docs/deploy.md#离线安装服务器连不上-github)。想在 Windows / macOS 上临时跑一个（测试、局域网），发布页也有对应的程序，见[部署与配置](docs/deploy.md#windows--macos)。
 
-**用安卓手机当服务器：** 装上 `vivant-android-arm64.apk`，点一下「启动」，同一 Wi-Fi 或手机热点下的人就能连进来；还能用 EasyTier 或 FRP 让外网的人进来，见[安卓手机当服务器](docs/android.md)。
+**用安卓手机当服务器：** 装上 `vivant-android-arm64.apk`，点一下「启动」，同一 Wi-Fi 或手机热点下的人就能连进来；还能通过 Tor 洋葱服务让外网的人进来，谁都看不到 IP，见[安卓手机当服务器](docs/android.md)。
 
 **从 Private-Talk Terminal 升级：** VIVANT 以前叫 Private-Talk Terminal（`ptterm`）。在旧服务器上运行一次上面的命令即可自动迁移，主机密钥、配置、封禁、洋葱地址都会保留，详见[部署与配置](docs/deploy.md#从-private-talk-terminal-迁移)。
 

@@ -43,6 +43,7 @@ public class VivantService extends Service {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Child server = new Child(main);
     private final Child tunnel = new Child(main);
+    private TorOnion tor;
     private String tunnelKind = Prefs.TUNNEL_OFF;
     private boolean wanted;
     private int quickFails, tunnelFails;
@@ -94,13 +95,16 @@ public class VivantService extends Service {
         int port = Prefs.port(this);
         List<String> cmd = new ArrayList<>();
         cmd.add(new File(getApplicationInfo().nativeLibraryDir, "libvivant.so").getAbsolutePath());
-        add(cmd, "-addr", ":" + port,
+        boolean onion = Prefs.TUNNEL_TOR.equals(Prefs.tunnel(this));
+        // Tor without LAN: nothing but the phone itself can reach the server directly
+        add(cmd, "-addr", (onion && !Prefs.torAllowLan(this) ? "127.0.0.1:" : ":") + port,
                 "-host-key", new File(getFilesDir(), "host_ed25519").getAbsolutePath(),
                 "-health-addr", "127.0.0.1:" + Prefs.healthPort(this),
                 "-relay-addr", "127.0.0.1:" + Prefs.relayPort(this),
                 "-max-clients", String.valueOf(Prefs.maxClients(this)),
                 // a phone usually has no use for the Tor exit list and it costs mobile data
                 "-tor-exits=false");
+        if (onion) add(cmd, "-onion-addr", "127.0.0.1:" + Prefs.onionLocalPort(this));
         String rooms = Prefs.rooms(this).trim();
         if (!rooms.isEmpty()) add(cmd, "-rooms", rooms);
         cmd.addAll(splitArgs(Prefs.extraArgs(this)));
@@ -142,6 +146,20 @@ public class VivantService extends Service {
     private void launchTunnel() {
         if (!wanted || tunnel.alive() || Prefs.TUNNEL_OFF.equals(tunnelKind)) {
             if (Prefs.TUNNEL_OFF.equals(tunnelKind)) ServerState.tunnel = ServerState.TUNNEL_OFF;
+            return;
+        }
+        if (Prefs.TUNNEL_TOR.equals(tunnelKind)) {
+            if (tor != null) return;
+            tor = new TorOnion(this);
+            try {
+                tor.start(Prefs.onionLocalPort(this));
+            } catch (Exception e) {
+                tor.stop();
+                tor = null;
+                ServerState.tunnel = ServerState.TUNNEL_FAILED;
+                ServerState.tunnelError = getString(R.string.err_tunnel_start, e.getMessage());
+            }
+            updateNotification();
             return;
         }
         final String kind = tunnelKind;
@@ -211,6 +229,10 @@ public class VivantService extends Service {
         if (poller != null) poller.interrupt();
         poller = null;
         tunnel.stop();
+        if (tor != null) {
+            tor.stop();
+            tor = null;
+        }
         server.stop();
         releaseLocks();
         ServerState.running = false;

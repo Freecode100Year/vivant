@@ -19,6 +19,12 @@
     <string name="connect_lan">同一 Wi-Fi 或连着本机热点的人，输入下面任意一行（iPhone 用 Termius 等 SSH App）· Same Wi-Fi or this phone\'s hotspot — type any line (iPhone: an SSH app like Termius):</string>
     <string name="net_hint_et">外网的人：先装 EasyTier（easytier.cn），再依次运行下面两行 · From anywhere: install EasyTier (easytier.cn), then run these two lines:</string>
     <string name="net_hint_et_app">（用 EasyTier App 的话：加入同名网络后 ssh -p %1$d guest@%2$s）· (EasyTier app: join the network, then ssh -p %1$d guest@%2$s)</string>
+    <string name="net_hint_tor">外网的人：打开 Tor Browser（或装好 tor），然后输入下面任意一行 · From anywhere: open Tor Browser (or run tor), then type either line:</string>
+    <string name="net_hint_tor_wait">启动后会在这里显示 .onion 地址 · The .onion address appears here after starting</string>
+    <string name="lan_closed">局域网入口已关闭（只能通过 Tor 进入）· LAN entrance closed (Tor only)</string>
+    <string name="tunnel_tor_progress">Tor：连接中 %1$d%% · Tor: connecting %1$d%%</string>
+    <string name="tunnel_tor_publishing">Tor：已连上，正在发布洋葱地址… · Tor: connected, publishing the onion address…</string>
+    <string name="tunnel_tor_up">Tor：已上线 ✓ · Tor: online ✓</string>
     <string name="net_hint_frp">外网的人，输入 · From anywhere, type:</string>
     <string name="copy">复制 · Copy</string>
     <string name="copied">已复制 · Copied</string>
@@ -28,9 +34,24 @@
 
     <string name="net_title">外网访问 · Internet access</string>
     <string name="net_off">关闭（只限局域网 / 热点）· Off (LAN / hotspot only)</string>
-    <string name="net_et">EasyTier（不用服务器）· EasyTier (no server needed)</string>
-    <string name="net_frp">FRP（用自己的服务器）· FRP (your own server)</string>
-    <string name="et_hint">免费、点对点打洞，连不通时走公共中继。对方也要装 EasyTier。把网络名和密码发给想进来的人。· Free P2P with a public relay as fallback. Visitors install EasyTier too — send them the name and password.</string>
+    <string name="net_tor">Tor 洋葱服务（推荐：谁都看不到 IP）· Tor onion service (recommended: no one sees any IP)</string>
+    <string name="net_et">EasyTier（自己的中继节点）· EasyTier (your own relay)</string>
+    <string name="net_frp">FRP（自己的服务器）· FRP (your own server)</string>
+    <string name="tor_hint">手机会生成一个 .onion 地址。访客、你自己的手机、聊天服务器三方都看不到彼此的 IP，运营商只能看到「在用 Tor」。访客需要 Tor Browser 或 Orbot。· The phone gets a .onion address. Visitors, this phone and the chat server never see each other's IP; the network only sees "Tor". Visitors need Tor Browser or Orbot.</string>
+    <string name="tor_bridges">连接 Tor 的方式 · How to reach Tor</string>
+    <string name="bridges_none">直连（Tor 没被封锁的地方）· Direct (where Tor isn't blocked)</string>
+    <string name="bridges_snowflake">Snowflake 网桥（中国等封锁 Tor 的地方）· Snowflake bridge (China and other censored networks)</string>
+    <string name="bridges_custom">自定义网桥（obfs4 / webtunnel…）· Custom bridges (obfs4 / webtunnel…)</string>
+    <string name="bridges_custom_hint">obfs4 1.2.3.4:443 FINGERPRINT cert=… iat-mode=0
+（每行一个，可从 bridges.torproject.org 获取 · one per line, from bridges.torproject.org）</string>
+    <string name="tor_new">换一个新 .onion 地址 · New .onion address</string>
+    <string name="tor_new_done">旧地址已作废，下次启动会生成新地址 · Old address retired; a new one is made on the next start</string>
+    <string name="tor_allow_lan">同时允许局域网 / 热点直连（会暴露局域网地址）· Also allow LAN / hotspot (reveals local addresses)</string>
+    <string name="et_warn">⚠ 中继节点能看到访客和这台手机的 IP。只用你自己控制、且不在中国的节点。· The relay sees visitors' and this phone's IPs. Only use a node you control, outside China.</string>
+    <string name="et_hint">已关闭点对点直连，所有流量只走中继，手机和访客互相看不到 IP。对方也要装 EasyTier。· P2P is off: everything goes through the relay, so this phone and visitors never see each other's IP. Visitors install EasyTier too.</string>
+    <string name="et_peer">中继节点（必填，你自己的）· Relay node (required, your own)</string>
+    <string name="et_peer_hint">tcp://your-vps:11010</string>
+    <string name="frp_warn">⚠ frps 服务器能看到每个访客的 IP。· The frps server sees every visitor's IP.</string>
     <string name="et_name">网络名 · Network name</string>
     <string name="et_secret">网络密码 · Network password</string>
     <string name="et_new">换一组 · New pair</string>
@@ -48,8 +69,6 @@
     <string name="max_clients">最多同时在线 · Max online users</string>
     <string name="rooms">公共房间（可选）· Public rooms (optional)</string>
     <string name="rooms_hint">lobby:大厅,tech:技术</string>
-    <string name="et_peer">EasyTier 节点（逗号分隔）· EasyTier nodes (comma separated)</string>
-    <string name="et_peer_default">tcp://public.easytier.top:11010</string>
     <string name="extra">额外参数（可选）· Extra flags (optional)</string>
     <string name="extra_hint">-history-ttl 24h -msg-rate 2</string>
     <string name="autostart">开机自动启动 · Start on boot</string>

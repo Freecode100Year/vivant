@@ -18,6 +18,8 @@ final class ServerState {
     static volatile String error;
     static volatile int tunnel = TUNNEL_OFF;
     static volatile String tunnelError;
+    /** Tor bootstrap percentage. */
+    static volatile int torProgress;
     private static long version;
 
     private ServerState() {}

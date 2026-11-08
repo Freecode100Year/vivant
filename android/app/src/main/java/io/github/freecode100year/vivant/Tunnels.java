@@ -15,9 +15,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Internet access for the phone's chat room through a bundled tunnel:
- * EasyTier (P2P mesh, no server of your own; visitors run EasyTier too) or
- * frpc (your own frps server; visitors just ssh to it). Both forward to the
+ * Internet access for the phone's chat room through a bundled tunnel other
+ * than Tor: EasyTier through the user's own relay node (visitors run
+ * EasyTier too) or frpc to the user's own frps (visitors just ssh to it).
+ * Unlike Tor, the relay / frps sees visitors' IP addresses. Both forward to the
  * server's local relay listener, so tunnelled users share generous limits
  * instead of all counting as one address (127.0.0.1).
  */
@@ -36,11 +37,17 @@ final class Tunnels {
             // no TUN device (that would need Android's VPN permission): other
             // nodes reach this phone's loopback ports at ET_IP through EasyTier's
             // own network stack
+            // relay only: no listener, no P2P and no hole punching, so the
+            // phone and visitors never connect to (and learn) each other's IP
             add(cmd, "--no-tun", "-i", Prefs.ET_IP,
                     "--network-name", Prefs.etName(c),
                     "--network-secret", Prefs.etSecret(c),
                     "--hostname", "vivant",
                     "--machine-id", Prefs.etMachineId(c),
+                    "--no-listener",
+                    "--disable-p2p",
+                    "--disable-udp-hole-punching",
+                    "--disable-tcp-hole-punching",
                     "--bind-device", "false",
                     "--file-log-level", "off",
                     "--console-log-level", "info");

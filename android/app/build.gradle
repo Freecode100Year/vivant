@@ -73,3 +73,11 @@ android {
         checkReleaseBuilds false
     }
 }
+
+dependencies {
+    // Tor itself (the same build Orbot uses) and its control-port library
+    implementation "info.guardianproject:tor-android:0.4.9.14"
+    implementation "info.guardianproject:jtorctl:0.4.5.7"
+    // Snowflake / obfs4 / webtunnel bridges for censored networks
+    implementation "com.netzarchitekten:IPtProxy:5.7.0"
+}
