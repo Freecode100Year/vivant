@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the bundled tunnel tools for Android from their official sources:
 #   easytier-core (EasyTier, Rust) -> app/src/main/jniLibs/<abi>/libeasytier.so
-#   frpc          (frp, Go + cgo)  -> app/src/main/jniLibs/<abi>/libfrpc.so
+#   frpc          (frp, Go + cgo)  -> app/src/main/jniLibs/<abi>/libfrpc.so  (no admin web UI)
 # Like libvivant.so these are plain executables, named .so so Android
 # extracts them where an app may run them.
 #
@@ -60,7 +60,7 @@ for abi in "${abis[@]}"; do
 		(
 			cd "$work/frp"
 			CGO_ENABLED=1 GOOS=android GOARCH=$goarch GOARM=$goarm CC=$TC/$clang \
-				go build -trimpath -ldflags "-s -w" -tags frpc -o "$out/libfrpc.so" ./cmd/frpc
+				go build -trimpath -ldflags "-s -w" -tags frpc,noweb -o "$out/libfrpc.so" ./cmd/frpc
 		)
 		;;
 	*) echo "unknown tool $tool" >&2; exit 1 ;;
