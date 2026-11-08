@@ -170,7 +170,8 @@ jobs:
           n=$(sed -n 's/^VIVANT_MAX_CLIENTS=//p' /etc/vivant.env)
           [ "$n" -ge 100 ] && [ "$n" -le 20000 ]
           grep -q '^VIVANT_MAX_CLIENTS_AUTO=1' /etc/vivant.env
-          sudo vivant-ctl status | grep -q "最多在线 Max:   $n"
+          sudo vivant-ctl status > /tmp/st-max.txt
+          grep -q "最多在线 Max:   $n" /tmp/st-max.txt
           # a number set by hand is applied, survives an upgrade, and is enforced
           sudo VIVANT_DOWNLOAD_BASE=http://127.0.0.1:8765 vivant-ctl install --max-clients 1
           sudo VIVANT_DOWNLOAD_BASE=http://127.0.0.1:8765 vivant-ctl install
@@ -178,8 +179,8 @@ jobs:
           O="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PubkeyAuthentication=no -p 2222"
           (sleep 6) | ssh -T $O guest@127.0.0.1 > /tmp/first.txt 2>&1 &
           sleep 3
-          out=$( (sleep 1) | ssh -T $O guest@127.0.0.1 2>&1 || true )
-          echo "$out" | grep -q "server is full"
+          (sleep 1) | ssh -T $O guest@127.0.0.1 > /tmp/full.txt 2>&1 || true
+          grep -q "server is full" /tmp/full.txt
           wait
           sudo VIVANT_DOWNLOAD_BASE=http://127.0.0.1:8765 vivant-ctl install --max-clients auto
           test "$(sed -n 's/^VIVANT_MAX_CLIENTS=//p' /etc/vivant.env)" = "$n"
