@@ -99,7 +99,7 @@ ssh -p 2222 guest@127.0.0.1
 
 ## 自己构建
 
-需要 Rust、Android NDK（r25+）、JDK 17、Gradle 8.14+ 或 Android Studio；穿透工具另需 Go、protoc、cmake：
+需要 Rust、Android NDK（r25+）、JDK 17、Gradle 9.8+ 或 Android Studio；穿透工具另需 Go、protoc、cmake：
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android

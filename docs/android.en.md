@@ -99,7 +99,7 @@ Same as on a VPS: no accounts, no IPs / nicknames / messages in the log, chat ke
 
 ## Build it yourself
 
-Needs Rust, the Android NDK (r25+), JDK 17, and Gradle 8.14+ or Android Studio; the tunnel tools also need Go, protoc and cmake:
+Needs Rust, the Android NDK (r25+), JDK 17, and Gradle 9.8+ or Android Studio; the tunnel tools also need Go, protoc and cmake:
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
