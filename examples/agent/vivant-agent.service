@@ -1,0 +1,46 @@
+# VIVANT resident AI agent as a systemd service · 常驻智能体系统服务
+#
+#   sudo install -D -m 0644 vivant_agent.py /opt/vivant-agent/vivant_agent.py
+#   sudo install -m 0600 vivant-agent.env.example /etc/vivant-agent.env   # then edit it
+#   sudo install -m 0644 vivant-agent.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now vivant-agent
+#   journalctl -u vivant-agent -f
+#
+# Several agents: copy this file as vivant-agent@.service, use
+# EnvironmentFile=/etc/vivant-agent-%i.env, and enable vivant-agent@helper etc.
+[Unit]
+Description=VIVANT resident AI agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=vivant-agent
+Environment=HOME=/var/lib/vivant-agent
+Environment=VIVANT_KNOWN_HOSTS=/var/lib/vivant-agent/known_hosts
+EnvironmentFile=/etc/vivant-agent.env
+ExecStart=/usr/bin/python3 -u /opt/vivant-agent/vivant_agent.py
+# the agent reconnects by itself; this only covers a crash of the script
+Restart=always
+RestartSec=10
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+UMask=0077
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

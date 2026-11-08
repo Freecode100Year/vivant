@@ -668,3 +668,65 @@ fn literal_slash() {
     h.handle(a.id, "//help me");
     assert!(has(&drain(&mut b), Kind::Chat, "/help me"));
 }
+
+#[test]
+fn bots_have_their_own_idle_limit() {
+    let h = hub_with(|c| c.idle_kick = Duration::from_millis(30));
+    let human = conn(&h, "ip-a");
+    let bot = conn(&h, "ip-b");
+    h.mark_bot(bot.id);
+    std::thread::sleep(Duration::from_millis(50));
+    h.janitor();
+    assert!(closed(&human), "idle human kept");
+    assert!(!closed(&bot), "bot dropped although bot idle limit is off");
+    let h = hub_with(|c| {
+        c.idle_kick = Duration::from_secs(3600);
+        c.bot_idle_kick = Duration::from_millis(30)
+    });
+    let bot = conn(&h, "ip-b");
+    h.mark_bot(bot.id);
+    std::thread::sleep(Duration::from_millis(50));
+    h.janitor();
+    assert!(closed(&bot), "bot idle limit not applied");
+}
+
+#[test]
+fn chosen_nick_is_held_for_its_address() {
+    let h = test_hub();
+    let a = conn(&h, "ip-a");
+    h.handle(a.id, "/nick Helper");
+    h.disconnect(a.id);
+    // someone else can't take it while it's held
+    let mut b = conn(&h, "ip-b");
+    drain(&mut b);
+    h.handle(b.id, "/nick helper");
+    assert!(has(&drain(&mut b), Kind::Error, "taken"));
+    // the same address gets it back
+    let a2 = conn(&h, "ip-a");
+    h.handle(a2.id, "/nick Helper");
+    assert_eq!(h.nick(a2.id), "Helper");
+    // random names are never held
+    let c = conn(&h, "ip-c");
+    let random = h.nick(c.id);
+    h.disconnect(c.id);
+    let mut d = conn(&h, "ip-d");
+    drain(&mut d);
+    h.handle(d.id, &format!("/nick {random}"));
+    assert!(!has(&drain(&mut d), Kind::Error, "taken"));
+}
+
+#[test]
+fn held_nick_expires() {
+    let h = hub_with(|c| {
+        c.nick_hold = Duration::from_millis(20);
+        c.nick_cooldown = Duration::from_millis(1)
+    });
+    let a = conn(&h, "ip-a");
+    h.handle(a.id, "/nick Helper");
+    h.disconnect(a.id);
+    std::thread::sleep(Duration::from_millis(40));
+    h.janitor();
+    let b = conn(&h, "ip-b");
+    h.handle(b.id, "/nick Helper");
+    assert_eq!(h.nick(b.id), "Helper");
+}

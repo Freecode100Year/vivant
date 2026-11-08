@@ -268,7 +268,7 @@ pub async fn run(io: &mut Io, hub: &Hub, c: &mut Client) {
             max_runes: cfg.max_msg_runes,
             burst: cfg.msg_burst,
             per_second: cfg.msg_per_second,
-            idle_kick: cfg.idle_kick.as_secs(),
+            idle_kick: cfg.bot_idle_kick.as_secs(),
             max_split: MAX_SPLIT,
         }),
         ..now_ev("hello")

@@ -17,7 +17,7 @@ ssh -T -o StrictHostKeyChecking=accept-new -p 2222 bot@HOST
 连上后第一行是 `hello`，告诉你昵称和限制：
 
 ```json
-{"type":"hello","time":"2026-11-07T02:13:00-05:00","room":"general","nick":"anonymous_1234","limits":{"max_runes":500,"burst":5,"per_second":1,"idle_kick":3600,"max_split":8}}
+{"type":"hello","time":"2026-11-07T02:13:00-05:00","room":"general","nick":"anonymous_1234","limits":{"max_runes":500,"burst":5,"per_second":1,"idle_kick":0,"max_split":8}}
 ```
 
 之后每个事件一行：
@@ -66,15 +66,27 @@ echo '{"text":"部署完成 ✅"}' | ssh -T -p 2222 bot@HOST
 
 ## 注意事项
 
-- **空闲断线：** 1 小时不发言会被断开（取决于部署者的 `-idle-timeout`，见 `hello` 里的 `idle_kick`；`ping` 不算发言）。收到 `disconnect` 或连接结束后请自动重连，失败时逐渐加长等待时间。重连后昵称是新的随机名，需要重新 `/nick`。
+- **常驻：** bot 模式的会话默认不会因为不发言被断开（`hello` 里 `idle_kick` 为 0；部署者可以用 `-bot-idle-timeout` 设上限）。服务器每 30 秒发一次 SSH 保活，掉线的连接约 2 分钟内会被清理。
+- **重连：** 收到 `disconnect` 或连接结束后请自动重连，失败时逐渐加长等待时间（加点随机，免得服务器重启后所有 bot 同时涌入）。重连后先是新的随机名，再发一次 `/nick`：自己选的昵称在断线后 10 分钟内为同一地址保留，别人拿不走（`-nick-hold`）。如果提示已被占用，多半是上一个连接还没被清理，过 30 秒再试。
+- **去重：** 重连进房间会回放历史，用 `id` 加 `time` 识别已经见过的消息（服务器重启后 `id` 从头编号）。
 - **限流：** 和所有人一样，突发 5 条、每秒 1 条，同一句话连发 3 次会被拦。`{"text":...}` 会自动排队；直接发的纯文本行不会排队。
 - **同一地址最多 3 个会话。**
 - **匿名：** 别让模型复述或收集能识别别人身份的信息。服务器能看到明文，见[安全与匿名性](security.md)。
 
 ## 示例程序
 
-[`examples/agent/vivant_agent.py`](../examples/agent/vivant_agent.py)：只用 Python 标准库，有人 @它 或私信它时用 Claude 回复（没设 `ANTHROPIC_API_KEY` 时原样回显）；不回复历史和自己；同一房间 5 秒内只回一次，2 分钟内对同一个人最多回 3 次；断线自动重连。
+[`examples/agent/vivant_agent.py`](../examples/agent/vivant_agent.py)：只用 Python 标准库，有人 @它 或私信它时用 Claude 回复（没设 `ANTHROPIC_API_KEY` 时原样回显）；不回复历史和自己；同一房间 5 秒内只回一次，2 分钟内对同一个人最多回 3 次；断线自动重连并拿回昵称，定时 `ping` 发现假死连接，重连后不重复记忆历史消息，同时进行的模型调用最多 4 个。
 
 ```
 VIVANT_HOST=HOST VIVANT_NICK=Helper ANTHROPIC_API_KEY=sk-ant-... python3 examples/agent/vivant_agent.py
+```
+
+作为系统服务常驻（开机自启、崩溃自动重启、沙箱运行；API 密钥放在权限 0600 的配置文件里）：
+
+```
+sudo install -D -m 0644 examples/agent/vivant_agent.py /opt/vivant-agent/vivant_agent.py
+sudo install -m 0600 examples/agent/vivant-agent.env.example /etc/vivant-agent.env   # 填好 VIVANT_NICK、ANTHROPIC_API_KEY
+sudo install -m 0644 examples/agent/vivant-agent.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now vivant-agent
+journalctl -u vivant-agent -f
 ```

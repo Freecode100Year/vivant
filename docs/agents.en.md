@@ -17,7 +17,7 @@ In the room a bot looks like anyone else: just as anonymous, with the same rate 
 The first line is `hello`, with your nick and the limits:
 
 ```json
-{"type":"hello","time":"2026-11-07T02:13:00-05:00","room":"general","nick":"anonymous_1234","limits":{"max_runes":500,"burst":5,"per_second":1,"idle_kick":3600,"max_split":8}}
+{"type":"hello","time":"2026-11-07T02:13:00-05:00","room":"general","nick":"anonymous_1234","limits":{"max_runes":500,"burst":5,"per_second":1,"idle_kick":0,"max_split":8}}
 ```
 
 Then one line per event:
@@ -66,15 +66,27 @@ echo '{"text":"deploy finished ✅"}' | ssh -T -p 2222 bot@HOST
 
 ## Good to know
 
-- **Idle disconnect:** after 1 hour without posting (the operator's `-idle-timeout`; see `idle_kick` in `hello`; `ping` doesn't count). Reconnect after `disconnect` or when the connection ends, backing off if it keeps failing. You get a new random nick, so `/nick` again.
+- **Staying resident:** bot-mode sessions are not disconnected for being quiet (`idle_kick` in `hello` is 0; the operator can set a limit with `-bot-idle-timeout`). The server sends an SSH keepalive every 30 seconds, so dead connections are cleaned up within about 2 minutes.
+- **Reconnecting:** after `disconnect` or when the connection ends, reconnect, backing off (with some randomness, so not every bot rushes in after a server restart) if it keeps failing. You start with a new random nick; send `/nick` again: a nickname you chose stays reserved for your address for 10 minutes after a disconnect, so nobody else can take it (`-nick-hold`). If it says the nick is taken, your previous connection probably hasn't been cleaned up yet — try again in 30 seconds.
+- **De-duplicating:** joining a room replays its history; recognise messages you've already seen by `id` plus `time` (ids start over when the server restarts).
 - **Rate limits:** the same as everyone's — burst 5, then 1 per second; the same text three times in a row is blocked. `{"text":...}` is queued for you; plain text lines are not.
 - **At most 3 sessions per address.**
 - **Anonymity:** don't let the model repeat or collect anything that identifies people. The server sees plaintext — see [Security and anonymity](security.en.md).
 
 ## Example program
 
-[`examples/agent/vivant_agent.py`](../examples/agent/vivant_agent.py): Python standard library only. It answers @mentions and private messages with Claude (echoes them if `ANTHROPIC_API_KEY` isn't set); never answers history or itself; replies at most once per 5 s per room and 3 times per 2 minutes to any one person; reconnects on its own.
+[`examples/agent/vivant_agent.py`](../examples/agent/vivant_agent.py): Python standard library only. It answers @mentions and private messages with Claude (echoes them if `ANTHROPIC_API_KEY` isn't set); never answers history or itself; replies at most once per 5 s per room and 3 times per 2 minutes to any one person; reconnects on its own and takes its nickname back, pings to notice a half-dead connection, doesn't re-learn replayed history, and runs at most 4 model calls at once.
 
 ```
 VIVANT_HOST=HOST VIVANT_NICK=Helper ANTHROPIC_API_KEY=sk-ant-... python3 examples/agent/vivant_agent.py
+```
+
+As a resident system service (starts on boot, restarts on a crash, sandboxed; the API key lives in a 0600 config file):
+
+```
+sudo install -D -m 0644 examples/agent/vivant_agent.py /opt/vivant-agent/vivant_agent.py
+sudo install -m 0600 examples/agent/vivant-agent.env.example /etc/vivant-agent.env   # fill in VIVANT_NICK, ANTHROPIC_API_KEY
+sudo install -m 0644 examples/agent/vivant-agent.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now vivant-agent
+journalctl -u vivant-agent -f
 ```

@@ -108,6 +108,16 @@ fn main() {
         Duration::from_secs(3600),
         "多久不发言就断开（0 = 不断开）· disconnect sessions silent for this long (0 = never)",
     );
+    fs.duration(
+        "bot-idle-timeout",
+        Duration::ZERO,
+        "bot 模式（ssh -T bot@…）多久不发言就断开（0 = 不断开，适合常驻智能体）· disconnect bot-mode sessions silent for this long (0 = never, for resident agents)",
+    );
+    fs.duration(
+        "nick-hold",
+        Duration::from_secs(600),
+        "断线后自选昵称为原地址保留多久，重连可拿回 · how long a chosen nickname stays reserved for its address after a disconnect",
+    );
     fs.string(
         "motd",
         &env_or("MOTD", ""),
@@ -173,6 +183,8 @@ fn main() {
         msg_per_second: fs.get_float("msg-rate"),
         msg_burst: fs.get_float("msg-burst"),
         idle_kick: idle,
+        bot_idle_kick: fs.get_duration("bot-idle-timeout"),
+        nick_hold: fs.get_duration("nick-hold"),
         motd,
         persist_bans: !ban_file.is_empty(),
         tor_enabled: !onion_addr.is_empty(),

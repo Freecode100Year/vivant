@@ -166,6 +166,8 @@ sudo vivant-ctl status        # 输出里的 Host key: SHA256:…
 | `-read-rate` | 32768 | 每个连接每秒最多发来多少字节，超出会被放慢而不是断开（突发 8 倍；0 = 不限）。正常打字和粘贴远远用不到 |
 | `-msg-rate` / `-msg-burst` / `-max-len` | 1/s / 5 / 500 | 发言限制 |
 | `-idle-timeout` | 1h | 不发言多久后断开（0 = 不断开） |
+| `-bot-idle-timeout` | 0 | bot 模式（常驻智能体）不发言多久后断开（0 = 不断开） |
+| `-nick-hold` | 10m | 断线后自选昵称为原地址保留多久 |
 
 其它参数写进 `VIVANT_ARGS=`。全部参数：`vivant -h`。
 

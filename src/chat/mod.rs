@@ -96,6 +96,12 @@ pub struct Config {
     pub max_private: usize,
     /// drop sessions that haven't sent anything for this long (zero = never)
     pub idle_kick: Duration,
+    /// the same for bot-mode sessions (`ssh -T bot@host`), which usually stay
+    /// connected for good (zero = never)
+    pub bot_idle_kick: Duration,
+    /// a chosen nickname stays reserved for its address this long after the
+    /// session ends, so a reconnecting person or agent gets it back
+    pub nick_hold: Duration,
     pub onion_max_conns: usize,
     pub onion_per_min: usize,
     pub motd: Vec<String>,
@@ -145,6 +151,9 @@ impl Config {
         }
         if self.msg_per_second <= 0.0 {
             self.msg_per_second = 1.0;
+        }
+        if self.nick_hold.is_zero() {
+            self.nick_hold = Duration::from_secs(600);
         }
         if self.nick_cooldown.is_zero() {
             self.nick_cooldown = Duration::from_secs(20);
@@ -260,6 +269,8 @@ struct ClientState {
     /// rooms where the client was @mentioned while away
     mentioned: HashSet<String>,
     no_bell: bool,
+    /// a bot-mode session (only changes the idle limit; never shown)
+    bot: bool,
     theme: &'static str,
 }
 
@@ -381,6 +392,9 @@ struct State {
     event_id: u64,
     ban_ver: u64,
     shutdown: bool,
+    /// lowercased nick -> (address key, until): nicknames held for their
+    /// previous owner after a disconnect
+    held: HashMap<String, (String, Instant)>,
 }
 
 /// The whole chat server state.
@@ -430,6 +444,7 @@ impl Hub {
                 event_id: 0,
                 ban_ver: 0,
                 shutdown: false,
+                held: HashMap::new(),
             }),
             cfg,
         })
@@ -510,6 +525,7 @@ impl Hub {
             violation_at: None,
             muted_until: None,
             nick_at: None,
+            bot: false,
             last_active: now,
             ignores: HashSet::new(),
             loc: Zone::Local,
@@ -554,6 +570,11 @@ impl Hub {
         self.presence(st, &room, &c.nick, verb, verb == "left" || verb == "timed out");
         self.gc_room(st, &room);
         st.by_nick.remove(&c.nick.to_lowercase());
+        if c.nick_at.is_some() {
+            // a chosen name (not a random anonymous_N): keep it for whoever
+            // reconnects from the same address
+            st.held.insert(c.nick.to_lowercase(), (c.ip_key.clone(), Instant::now() + self.cfg.nick_hold));
+        }
         match st.per_ip.get_mut(&c.ip_key) {
             Some(n) if *n > 1 => *n -= 1,
             _ => {
@@ -592,19 +613,23 @@ impl Hub {
         if st.bans.len() != before {
             st.ban_ver += 1;
         }
-        if !self.cfg.idle_kick.is_zero() {
+        for (limit, bots) in [(self.cfg.idle_kick, false), (self.cfg.bot_idle_kick, true)] {
+            if limit.is_zero() {
+                continue;
+            }
             let idle: Vec<u64> = st
                 .clients
                 .iter()
-                .filter(|(_, c)| !c.admin && now.duration_since(c.last_active) > self.cfg.idle_kick)
+                .filter(|(_, c)| c.bot == bots && !c.admin && now.duration_since(c.last_active) > limit)
                 .map(|(id, _)| *id)
                 .collect();
-            let (d, d_en) = dur_text(self.cfg.idle_kick);
+            let (d, d_en) = dur_text(limit);
             let reason = bi(&format!("{d} 未发言，已断开"), &format!("idle for {d_en}"));
             for id in idle {
                 self.remove(st, id, &reason, "timed out");
             }
         }
+        st.held.retain(|_, (_, until)| *until > now);
         st.conn_log.retain(|_, log| {
             prune_times(log, now - Duration::from_secs(60));
             !log.is_empty()
@@ -1056,7 +1081,9 @@ impl Hub {
         if n == c.nick {
             return;
         }
-        if st.by_nick.get(&n.to_lowercase()).is_some_and(|&o| o != id) {
+        let lower = n.to_lowercase();
+        let held_by_other = st.held.get(&lower).is_some_and(|(k, until)| *k != c.ip_key && *until > Instant::now());
+        if st.by_nick.get(&lower).is_some_and(|&o| o != id) || (held_by_other && !c.admin) {
             err!(c, format!("{} 已经有人用了。", q(&n)), format!("{} is taken.", q(&n)));
             return;
         }
@@ -1080,6 +1107,7 @@ impl Hub {
         let room = c.room.clone();
         st.by_nick.remove(&old.to_lowercase());
         st.by_nick.insert(n.to_lowercase(), id);
+        st.held.remove(&n.to_lowercase());
         for o in st.clients.values_mut() {
             // keep /r working across renames
             if o.last_dm_from == old {
@@ -1469,6 +1497,14 @@ impl Hub {
             if let Some(c) = st.clients.get_mut(&id) {
                 c.theme = t;
             }
+        }
+    }
+
+    /// Marks a session as bot mode (`ssh -T bot@host`): it gets the bot idle
+    /// limit. Nothing about it is visible to anyone.
+    pub fn mark_bot(&self, id: u64) {
+        if let Some(c) = self.lock().clients.get_mut(&id) {
+            c.bot = true;
         }
     }
 

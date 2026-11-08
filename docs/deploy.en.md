@@ -166,6 +166,8 @@ Config file `/etc/vivant.env`; after editing run `systemctl restart vivant`:
 | `-read-rate` | 32768 | bytes per second a connection may send before it's slowed down, not dropped (burst 8×; 0 = off). Typing and pasting never get near it |
 | `-msg-rate` / `-msg-burst` / `-max-len` | 1/s / 5 / 500 | posting limits |
 | `-idle-timeout` | 1h | disconnect after this long without posting (0 = never) |
+| `-bot-idle-timeout` | 0 | the same for bot mode, i.e. resident agents (0 = never) |
+| `-nick-hold` | 10m | how long a chosen nickname stays reserved for its address after a disconnect |
 
 Other flags go in `VIVANT_ARGS=`. Every flag: `vivant -h`. The old `PTT_*` names still work.
 
