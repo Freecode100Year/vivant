@@ -21,7 +21,7 @@ curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install
 
 1. 识别 CPU 架构，从 GitHub Release 下载对应二进制并**校验 SHA256**（下载失败时自动从源码编译）
 2. 安装为带完整沙箱的 systemd 服务（一次性无权限用户、只读系统、无 capability）
-3. 生成 `/etc/vivant.env` 配置，按机器内存设置 `GOMEMLIMIT`
+3. 生成 `/etc/vivant.env` 配置
 4. 放行防火墙端口（ufw / firewalld / iptables，包括 Oracle Cloud 镜像自带的 REJECT 规则）
 5. 检查端口占用，启动服务并确认在监听，最后打印连接命令和主机密钥指纹
 6. 安装管理命令 `vivant-ctl`
@@ -49,7 +49,7 @@ sudo vivant-ctl uninstall --purge # 彻底删除
 | `--alt-port N` | 同时监听第二个端口，例如 `443`：公司、学校、酒店网络常只放行 80/443。默认不开。443 这类知名端口会一直被扫描器探测，日志和连接数会多不少噪音（扫描连接 30 秒内没进入聊天就会被断开，同样受每地址限额约束）；用户用不上就别开。机器上已有网站占用 443 时用不了，安装器会检查并提示；`--alt-port off` 关闭 |
 | `--tor` | 同时发布为 Tor 洋葱服务（自动安装 Tor），用户可以不暴露 IP 连接，见[安全与匿名性](security.md) |
 | `--persist-bans` | 封禁在重启和升级后依然有效（默认只存在内存里）；`--no-persist-bans` 关闭。隐私上的取舍见[安全与匿名性](security.md) |
-| `--from-source` | 从源码编译（会临时下载 Go，结束后删除） |
+| `--from-source` | 从源码编译（会临时下载 Rust 工具链，结束后删除；需要 1GB 内存或交换分区，国内可设 `RUSTUP_DIST_SERVER=https://rsproxy.cn`） |
 | `--no-firewall` | 不改防火墙 |
 
 网络受限时：`VIVANT_DOWNLOAD_BASE=<镜像地址>` 指向放有 `vivant-linux-<arch>` 和 `SHA256SUMS` 的目录；源码编译可设 `GOPROXY=https://goproxy.cn`。
@@ -166,7 +166,6 @@ sudo vivant-ctl status        # 输出里的 Host key: SHA256:…
 | `-read-rate` | 32768 | 每个连接每秒最多发来多少字节，超出会被放慢而不是断开（突发 8 倍；0 = 不限）。正常打字和粘贴远远用不到 |
 | `-msg-rate` / `-msg-burst` / `-max-len` | 1/s / 5 / 500 | 发言限制 |
 | `-idle-timeout` | 1h | 不发言多久后断开（0 = 不断开） |
-| `GOMEMLIMIT` | 内存的 60% | Go 运行时软内存上限 |
 
 其它参数写进 `VIVANT_ARGS=`。全部参数：`vivant -h`。
 
@@ -179,7 +178,7 @@ sudo vivant-ctl status        # 输出里的 Host key: SHA256:…
 ```bash
 docker run -d --name vivant --restart unless-stopped --network host \
   --read-only --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
-  -v vivant-data:/data -e GOMEMLIMIT=600MiB \
+  -v vivant-data:/data \
   ghcr.io/freecode100year/vivant:latest
 ```
 

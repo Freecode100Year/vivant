@@ -15,8 +15,11 @@ permissions:
   packages: write   # container image on ghcr.io
 
 jobs:
-  release:
+  version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      skip: ${{ steps.v.outputs.skip }}
     steps:
       - uses: actions/checkout@v5
 
@@ -37,46 +40,92 @@ jobs:
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-go@v6
+      - uses: dtolnay/rust-toolchain@stable
         if: steps.v.outputs.skip != 'true'
-        with:
-          go-version-file: go.mod
 
       - name: Test
         if: steps.v.outputs.skip != 'true'
         run: |
-          go mod verify
-          go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-          go test -count=1 ./...
+          cargo install cargo-audit --locked --quiet
+          cargo audit --deny warnings
+          cargo test --locked
 
+  build:
+    needs: version
+    if: needs.version.outputs.skip != 'true'
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-musl, name: vivant-linux-amd64, zig: true }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-musl, name: vivant-linux-arm64, zig: true }
+          - { os: ubuntu-latest, target: armv7-unknown-linux-musleabihf, name: vivant-linux-armv7, zig: true }
+          # Windows / macOS: plain binaries for local testing and LANs (no installer)
+          - { os: macos-latest, target: x86_64-apple-darwin, name: vivant-macos-amd64 }
+          - { os: macos-latest, target: aarch64-apple-darwin, name: vivant-macos-arm64 }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, name: vivant-windows-amd64.exe }
+          - { os: windows-latest, target: aarch64-pc-windows-msvc, name: vivant-windows-arm64.exe }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: mlugg/setup-zig@v2
+        if: matrix.zig
+      - uses: taiki-e/install-action@v2
+        if: matrix.zig
+        with:
+          tool: cargo-zigbuild
       - name: Build
-        if: steps.v.outputs.skip != 'true'
+        shell: bash
+        env:
+          VIVANT_VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -e
-          V="${{ steps.v.outputs.version }}"
-          FLAGS="-trimpath -ldflags=-s -ldflags=-w -ldflags=-X=main.version=${V}"
-          mkdir -p dist
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64        go build $FLAGS -o dist/vivant-linux-amd64 .
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64        go build $FLAGS -o dist/vivant-linux-arm64 .
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7  go build $FLAGS -o dist/vivant-linux-armv7 .
+          if [ "${{ matrix.zig }}" = true ]; then
+            cargo zigbuild --release --locked --bin vivant --target ${{ matrix.target }}
+          else
+            cargo build --release --locked --bin vivant --target ${{ matrix.target }}
+          fi
+          mkdir -p out
+          src=target/${{ matrix.target }}/release/vivant
+          [ -f "$src.exe" ] && src=$src.exe
+          cp "$src" "out/${{ matrix.name }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: out/${{ matrix.name }}
+          if-no-files-found: error
+
+  publish:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Assemble
+        env:
+          V: ${{ needs.version.outputs.version }}
+        run: |
+          set -e
+          chmod 0755 dist/vivant-*
           # same binaries under the pre-rename names, so "ptterm-ctl upgrade" on
           # servers that haven't migrated yet keeps working
           for a in amd64 arm64 armv7; do cp dist/vivant-linux-$a dist/ptterm-linux-$a; done
-          # Windows / macOS: plain binaries for local testing and LANs (no installer)
-          CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build $FLAGS -o dist/vivant-macos-amd64 .
-          CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build $FLAGS -o dist/vivant-macos-arm64 .
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build $FLAGS -o dist/vivant-windows-amd64.exe .
-          CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build $FLAGS -o dist/vivant-windows-arm64.exe .
           cp install.sh dist/
           deploy/make-offline-bundle.sh dist "$V"
           (cd dist && sha256sum vivant-* ptterm-linux-* install.sh > SHA256SUMS && cat SHA256SUMS)
-          ./dist/vivant-linux-amd64 -version
+          test "$(./dist/vivant-linux-amd64 -version)" = "vivant $V"
 
       - name: Publish
-        if: steps.v.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          V: ${{ steps.v.outputs.version }}
+          V: ${{ needs.version.outputs.version }}
         run: |
           cat > notes.md <<'EOF'
           ## 一键安装 · One-line install
@@ -100,31 +149,33 @@ jobs:
           # abandoned tag (v0.10.0) has a higher version number.
           gh release create "$V" dist/* --target "$GITHUB_SHA" --title "$V" --notes-file notes.md --generate-notes --latest
 
+  image:
+    needs: [version, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
       - uses: docker/setup-buildx-action@v3
-        if: steps.v.outputs.skip != 'true'
 
       - uses: docker/login-action@v3
-        if: steps.v.outputs.skip != 'true'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
       - name: Image name
-        if: steps.v.outputs.skip != 'true'
         id: img
         run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       - name: Container image
-        if: steps.v.outputs.skip != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
-          build-args: VERSION=${{ steps.v.outputs.version }}
+          build-args: VERSION=${{ needs.version.outputs.version }}
           push: true
           tags: |
-            ${{ steps.img.outputs.name }}:${{ steps.v.outputs.version }}
+            ${{ steps.img.outputs.name }}:${{ needs.version.outputs.version }}
             ${{ steps.img.outputs.name }}:latest
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}

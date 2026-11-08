@@ -21,7 +21,7 @@ The script:
 
 1. Detects the CPU architecture, downloads the matching binary from GitHub Releases and **verifies its SHA256** (builds from source if the download fails)
 2. Installs it as a fully sandboxed systemd service (throwaway unprivileged user, read-only system, no capabilities)
-3. Creates `/etc/vivant.env`, setting `GOMEMLIMIT` from the machine's memory
+3. Creates `/etc/vivant.env`
 4. Opens the firewall port (ufw / firewalld / iptables, including the REJECT rule Oracle Cloud images ship)
 5. Checks the port is free, starts the service, confirms it's listening, then prints the connect command and the host key fingerprint
 6. Installs the management command `vivant-ctl`
@@ -49,7 +49,7 @@ All installer output is in Chinese and English.
 | `--alt-port N` | also listen on a second port, e.g. `443`: company, school and hotel networks often allow only 80/443. Off by default. Well-known ports like 443 are probed by scanners constantly, adding noise to logs and connection counts (scanners that don't enter the chat within 30 s are dropped and limited per address like everyone else); don't open it unless your users need it. Unavailable if a web server already uses 443 — the installer checks and tells you; `--alt-port off` removes it |
 | `--tor` | also publish the chat as a Tor onion service (installs Tor), so users can connect without revealing their IP; see [Security and anonymity](security.en.md) |
 | `--persist-bans` | bans survive restarts and upgrades (by default they live in memory only); `--no-persist-bans` turns it off. Privacy trade-off: [Security and anonymity](security.en.md) |
-| `--from-source` | build from source (downloads Go temporarily, removed afterwards) |
+| `--from-source` | build from source (downloads the Rust toolchain temporarily, removed afterwards; needs 1 GB of RAM or swap) |
 | `--no-firewall` | leave the firewall alone |
 
 Restricted network: point `VIVANT_DOWNLOAD_BASE=<mirror>` at a directory with `vivant-linux-<arch>` and `SHA256SUMS`; for source builds set `GOPROXY=https://goproxy.cn`.
@@ -166,7 +166,6 @@ Config file `/etc/vivant.env`; after editing run `systemctl restart vivant`:
 | `-read-rate` | 32768 | bytes per second a connection may send before it's slowed down, not dropped (burst 8×; 0 = off). Typing and pasting never get near it |
 | `-msg-rate` / `-msg-burst` / `-max-len` | 1/s / 5 / 500 | posting limits |
 | `-idle-timeout` | 1h | disconnect after this long without posting (0 = never) |
-| `GOMEMLIMIT` | 60% of RAM | Go runtime soft memory limit |
 
 Other flags go in `VIVANT_ARGS=`. Every flag: `vivant -h`. The old `PTT_*` names still work.
 
@@ -179,7 +178,7 @@ The one-line installer (systemd) is still the recommended way. If you prefer con
 ```bash
 docker run -d --name vivant --restart unless-stopped --network host \
   --read-only --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
-  -v vivant-data:/data -e GOMEMLIMIT=600MiB \
+  -v vivant-data:/data \
   ghcr.io/freecode100year/vivant:latest
 ```
 

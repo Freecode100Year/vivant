@@ -100,4 +100,4 @@ Improvements chosen after studying similar projects (ssh-chat, devzat, SoftRoom,
 - [Performance](docs/performance.en.md): load tests and design
 - [Development](docs/development.en.md): build, test, release, code layout, roadmap
 
-Pure Go, one static binary, no database, MIT licensed.
+Written in Rust, one static binary, no database, MIT licensed.

@@ -13,7 +13,6 @@ services:
       core: 0
     environment:
       VIVANT_ADDR: ":2222"
-      GOMEMLIMIT: "600MiB"
       # VIVANT_ROOMS: "general:大厅,english:English"
     command: ["-max-per-ip", "3", "-idle-timeout", "1h"]
     volumes:

@@ -22,7 +22,6 @@ ENV_FILE=/etc/vivant.env
 CONF_DIR=/etc/vivant
 ADMIN_FILE=$CONF_DIR/admins.pub
 STATE_DIR=/var/lib/vivant
-GO_VERSION="${GO_VERSION:-1.26.10}"
 TORRC=/etc/tor/torrc
 ONION_DIR=/var/lib/tor/vivant
 ONION_LOCAL=127.0.0.1:2224
@@ -101,8 +100,7 @@ ${C_B}VIVANT 安装器 · installer${C_0}
 
 环境变量 Environment
   VIVANT_DOWNLOAD_BASE  提供 vivant-linux-<arch> 和 SHA256SUMS 的镜像 · mirror serving vivant-linux-<arch> and SHA256SUMS
-  GOPROXY               --from-source 用的 Go 模块代理 · Go module proxy for --from-source (e.g. https://goproxy.cn)
-  GO_VERSION            --from-source 用的 Go 版本（默认 ${GO_VERSION}）· Go toolchain for --from-source
+  RUSTUP_DIST_SERVER    --from-source 下载 Rust 工具链用的镜像 · Rust toolchain mirror for --from-source (e.g. https://rsproxy.cn)
 
 从 Private-Talk Terminal（ptterm）升级 · Upgrading from Private-Talk Terminal (ptterm):
   运行本脚本即可自动迁移：配置、主机密钥、封禁、洋葱地址都会保留。
@@ -240,28 +238,16 @@ download_release() {
 }
 
 build_from_source() {
-	local goarch=$ARCH goarm="" ref url
-	[ "$ARCH" = armv7 ] && goarch=arm goarm=7
-	local go="$TMP/go/bin/go"
-	if command -v go >/dev/null && GOTOOLCHAIN=local go version 2>/dev/null | grep -Eq 'go1\.(2[6-9]|[3-9][0-9])'; then
-		go=$(command -v go)
-		info "使用已安装的 Using installed $(GOTOOLCHAIN=local go version | awk '{print $3}')"
+	local cargo ref url
+	if command -v cargo >/dev/null && cargo --version 2>/dev/null | grep -Eq 'cargo 1\.(8[5-9]|9[0-9]|[1-9][0-9][0-9])\.'; then
+		cargo=$(command -v cargo)
+		info "使用已安装的 Using installed $(cargo --version | awk '{print $1, $2}')"
 	else
-		info "下载 Go $GO_VERSION（临时，用完删除）· Downloading Go $GO_VERSION (temporary, removed afterwards)"
-		local tgz="go$GO_VERSION.linux-$goarch.tar.gz" fetched=0
-		for site in https://go.dev/dl https://golang.google.cn/dl https://dl.google.com/go; do
-			if fetch "$site/$tgz" "$TMP/$tgz" 2>/dev/null; then
-				fetched=1
-				break
-			fi
-		done
-		[ $fetched = 1 ] || die "无法下载 Go 工具链 · could not download Go toolchain"
-		if fetch "https://dl.google.com/go/$tgz.sha256" "$TMP/go.sha256" 2>/dev/null; then
-			echo "$(cat "$TMP/go.sha256")  $TMP/$tgz" | sha256sum -c --quiet - || die "Go 工具链校验和不匹配 · Go toolchain checksum mismatch"
-		else
-			warn "拿不到 Go 校验和，继续（下载已经过 TLS 验证）· could not fetch Go checksum; continuing (TLS-verified download)"
-		fi
-		tar -C "$TMP" -xzf "$TMP/$tgz"
+		info "下载 Rust 工具链（临时，用完删除）· Downloading the Rust toolchain (temporary, removed afterwards)"
+		fetch https://sh.rustup.rs "$TMP/rustup.sh" || die "无法下载 rustup · could not download rustup (RUSTUP_DIST_SERVER can point to a mirror)"
+		RUSTUP_HOME="$TMP/rustup" CARGO_HOME="$TMP/cargo" sh "$TMP/rustup.sh" -y -q --profile minimal --no-modify-path ||
+			die "无法安装 Rust 工具链 · could not install the Rust toolchain"
+		cargo="$TMP/cargo/bin/cargo"
 	fi
 	if [ "$VERSION" = latest ]; then ref=heads/main; else ref=tags/$VERSION; fi
 	url="https://github.com/$REPO/archive/refs/$ref.tar.gz"
@@ -269,13 +255,16 @@ build_from_source() {
 	fetch "$url" "$TMP/src.tgz" || die "无法下载源码 could not download source: $url"
 	mkdir -p "$TMP/src"
 	tar -C "$TMP/src" --strip-components=1 -xzf "$TMP/src.tgz"
+	[ -f "$TMP/src/Cargo.toml" ] || die "这个版本是 Go 写的，请去掉 --from-source 安装发布版 · this version predates the Rust rewrite; install the release instead (drop --from-source)"
 	local ver=$VERSION
 	[ "$ver" = latest ] && ver="main-$(date -u +%Y%m%d)"
-	info "编译中（小 VPS 上要一分钟左右）· Building (takes a minute on small VPSes)"
-	(cd "$TMP/src" && HOME="$TMP" GOPATH="$TMP/gopath" GOCACHE="$TMP/gocache" GOFLAGS=-mod=readonly \
-		GOTOOLCHAIN=local CGO_ENABLED=0 GOARCH=$goarch GOARM=$goarm \
-		"$go" build -trimpath -ldflags "-s -w -X main.version=$ver" -o "$TMP/vivant" .) ||
+	info "编译中（小 VPS 上要几分钟，至少需要 1GB 内存或交换分区）· Building (a few minutes on a small VPS; needs 1 GB of RAM or swap)"
+	# lighter settings than the release build: less memory, faster
+	(cd "$TMP/src" && RUSTUP_HOME="${RUSTUP_HOME:-$TMP/rustup}" CARGO_HOME="${CARGO_HOME:-$TMP/cargo}" \
+		CARGO_TARGET_DIR="$TMP/target" CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+		VIVANT_VERSION=$ver "$cargo" build --release --locked --bin vivant -q) ||
 		die "编译失败 · build failed"
+	cp "$TMP/target/release/vivant" "$TMP/vivant"
 	ok "已从源码编译 · Built from source"
 }
 
@@ -381,7 +370,7 @@ set_env() { # set_env KEY VALUE — replace or append a line in $ENV_FILE
 	fi
 }
 
-mem_limit() { # GOMEMLIMIT ≈ 60% of RAM, at least 128 MiB
+mem_limit() { # GOMEMLIMIT ≈ 60% of RAM, at least 128 MiB (Go releases only)
 	local kb mib
 	kb=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 1048576)
 	mib=$((kb * 6 / 10 / 1024))
@@ -400,7 +389,7 @@ VIVANT_ADDR=:${PORT:-2222}
 # 只返回计数的健康检查，status/doctor 用，只监听本机 · Counts-only health endpoint (status/doctor), localhost only.
 VIVANT_HEALTH_ADDR=127.0.0.1:2223
 
-# Go 运行时软内存上限（按本机内存设置）· Soft memory target for the Go runtime (from this machine's RAM).
+# 内存上限，只对 Go 写的旧版本（v0.9.x 及更早）有效 · Memory target, only read by the Go releases (v0.9.x and earlier).
 GOMEMLIMIT=$(mem_limit)
 
 # 公共房间，第一个是大厅；留空用内置默认 · Public rooms, first one is the lobby; empty = built-in defaults.

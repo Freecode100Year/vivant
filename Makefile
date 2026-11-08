@@ -1,42 +1,45 @@
 VERSION ?= v$(shell cat VERSION)$(shell git diff --quiet 2>/dev/null || echo -dirty)
-LDFLAGS := -s -w -X main.version=$(VERSION)
-GOBUILD := CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)"
+CARGO := VIVANT_VERSION=$(VERSION) cargo
+# static Linux binaries for typical VPSes (needs cargo-zigbuild and zig)
+LINUX_TARGETS := x86_64-unknown-linux-musl:amd64 aarch64-unknown-linux-musl:arm64 armv7-unknown-linux-musleabihf:armv7
 
 .PHONY: build test run dist bench lint clean
 
 build:
-	$(GOBUILD) -o bin/vivant .
+	$(CARGO) build --release --locked --bin vivant
+	mkdir -p bin && cp target/release/vivant bin/vivant
 
 test:
-	go test -race ./...
+	cargo test --locked
 
 lint:
-	go vet ./...
+	cargo fmt --check
+	cargo clippy --locked --all-targets -- -D warnings
 	shellcheck -S warning install.sh deploy/make-offline-bundle.sh deploy/offline-header.sh
 	bash install.sh --print-unit | diff -u deploy/vivant.service -
 
 run: build
 	./bin/vivant -addr 127.0.0.1:2222 -host-key ./data/host_ed25519
 
-# Static binaries for typical VPSes + checksums (what the release workflow publishes).
+# What the release workflow publishes for Linux, plus checksums.
 dist:
-	GOOS=linux GOARCH=amd64 $(GOBUILD) -o dist/vivant-linux-amd64 .
-	GOOS=linux GOARCH=arm64 $(GOBUILD) -o dist/vivant-linux-arm64 .
-	GOOS=linux GOARCH=arm GOARM=7 $(GOBUILD) -o dist/vivant-linux-armv7 .
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) -o dist/vivant-macos-amd64 .
-	GOOS=darwin GOARCH=arm64 $(GOBUILD) -o dist/vivant-macos-arm64 .
-	GOOS=windows GOARCH=amd64 $(GOBUILD) -o dist/vivant-windows-amd64.exe .
-	GOOS=windows GOARCH=arm64 $(GOBUILD) -o dist/vivant-windows-arm64.exe .
+	mkdir -p dist
+	for t in $(LINUX_TARGETS); do \
+		triple=$${t%%:*}; arch=$${t##*:}; \
+		$(CARGO) zigbuild --release --locked --bin vivant --target $$triple && \
+		cp target/$$triple/release/vivant dist/vivant-linux-$$arch || exit 1; \
+	done
 	cp install.sh dist/
 	deploy/make-offline-bundle.sh dist $(VERSION)
 	cd dist && sha256sum vivant-* install.sh > SHA256SUMS
 
 # Load test against a local server with relaxed limits.
-bench: build
-	go build -o bin/vivant-bench ./cmd/vivant-bench
-	./bin/vivant -addr 127.0.0.1:2299 -host-key ./data/bench_host -max-per-ip 100000 -max-tcp-per-ip 100000 \
-		-conn-per-min 100000 -max-clients 100000 -msg-rate 100 -msg-burst 100 & \
-	PID=$$!; sleep 1; ./bin/vivant-bench -addr 127.0.0.1:2299 -clients 500 -senders 25 -rate 0.5 -duration 20s; kill $$PID
+bench:
+	cargo build --release --locked
+	./target/release/vivant -addr 127.0.0.1:2299 -host-key ./data/bench_host -max-per-ip 100000 -max-tcp-per-ip 100000 \
+		-conn-per-min 100000 -max-clients 100000 -msg-rate 100 -msg-burst 100 -read-rate 0 -tor-exits=false & \
+	PID=$$!; sleep 1; ./target/release/vivant-bench -addr 127.0.0.1:2299 -clients 500 -senders 25 -rate 0.5 -duration 20s; kill $$PID
 
 clean:
+	cargo clean
 	rm -rf bin dist

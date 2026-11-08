@@ -1,8 +1,9 @@
 .git
 .github
+target
 dist
 data
 *.md
 docs
 deploy
-cmd/vivant-bench
+examples

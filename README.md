@@ -100,4 +100,4 @@ curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install
 - [性能](docs/performance.md)：压测数据和设计
 - [开发](docs/development.md)：构建、测试、发布、代码结构、路线图
 
-纯 Go 单个静态二进制，无数据库，MIT 许可。
+Rust 编写，单个静态二进制，无数据库，MIT 许可。
