@@ -65,7 +65,7 @@ fn main() {
         chat::DEFAULT_HISTORY_TTL,
         "消息保留时长（只在内存，重启清空）· discard messages older than this (memory only, cleared on restart)",
     );
-    fs.int("max-clients", 1000, "最大同时在线会话数 · maximum concurrent sessions");
+    fs.int("max-clients", env_or("MAX_CLIENTS", "1000").parse().unwrap_or(1000), "最大同时在线会话数 · maximum concurrent sessions");
     fs.int("max-per-ip", 3, "每个地址最多会话数（IPv6 按 /64）· maximum sessions per address (IPv6 per /64)");
     fs.int("conn-per-min", 10, "每个地址每分钟最多新会话 · new sessions per address per minute");
     fs.int(

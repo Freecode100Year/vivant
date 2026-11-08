@@ -163,6 +163,27 @@ jobs:
           ssh-keygen -q -t ed25519 -N "" -f ~/.ssh/vivant_admin
           sudo VIVANT_DOWNLOAD_BASE=http://127.0.0.1:8765 bash install.sh --admin-key ~/.ssh/vivant_admin.pub --domain localhost
 
+      - name: Max online from the machine size
+        run: |
+          exec > >(tee -a /tmp/ci-logs/max-clients.log) 2>&1
+          set -x
+          n=$(sed -n 's/^VIVANT_MAX_CLIENTS=//p' /etc/vivant.env)
+          [ "$n" -ge 100 ] && [ "$n" -le 20000 ]
+          grep -q '^VIVANT_MAX_CLIENTS_AUTO=1' /etc/vivant.env
+          sudo vivant-ctl status | grep -q "最多在线 Max:   $n"
+          # a number set by hand is applied, survives an upgrade, and is enforced
+          sudo VIVANT_DOWNLOAD_BASE=http://127.0.0.1:8765 vivant-ctl install --max-clients 1
+          sudo VIVANT_DOWNLOAD_BASE=http://127.0.0.1:8765 vivant-ctl install
+          grep -q '^VIVANT_MAX_CLIENTS=1$' /etc/vivant.env
+          O="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PubkeyAuthentication=no -p 2222"
+          (sleep 6) | ssh -T $O guest@127.0.0.1 > /tmp/first.txt 2>&1 &
+          sleep 3
+          out=$( (sleep 1) | ssh -T $O guest@127.0.0.1 2>&1 || true )
+          echo "$out" | grep -q "server is full"
+          wait
+          sudo VIVANT_DOWNLOAD_BASE=http://127.0.0.1:8765 vivant-ctl install --max-clients auto
+          test "$(sed -n 's/^VIVANT_MAX_CLIENTS=//p' /etc/vivant.env)" = "$n"
+
       - name: Chat over SSH
         run: |
           exec > >(tee -a /tmp/ci-logs/chat-over-ssh.log) 2>&1

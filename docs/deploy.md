@@ -43,6 +43,7 @@ sudo vivant-ctl uninstall --purge # 彻底删除
 | --- | --- |
 | `--port N` | 聊天室 SSH 端口，默认 2222。用 22 需先把系统 sshd 挪走，脚本会自动加端口权限 |
 | `--admin-key KEY` | 管理员公钥：`ssh-ed25519 AAAA…`、`.pub` 文件路径，或 `github:用户名`；可重复 |
+| `--max-clients N` | 最多同时在线人数。默认 `auto`：按本机内存和 CPU 核数自动计算（内存的一半按每人 200 KB 算、每核 2500 人，取小者，100–20000），每次重装或升级都会重新计算；设了具体数字就一直保留 |
 | `--rooms LIST` | 公共频道，如 `"general:大厅,chinese:中文,tech:技术"`（第一个是大厅） |
 | `--domain NAME` | 用户连接用的域名：显示在最后的连接命令里，`doctor` 也用它检查解析 |
 | `--version vX.Y.Z` | 安装指定版本 |
@@ -162,7 +163,7 @@ sudo vivant-ctl status        # 输出里的 Host key: SHA256:…
 | `VIVANT_TOR_EXITS` / `-tor-exits` | `on` | 定期下载 Tor 出口节点列表，让 Tor 用户共用宽松限额；`off` 关闭 |
 | `-quiet-above` | 20 | 房间超过这个人数后，进出提示改为每 30 秒汇总一次（-1 = 不汇总） |
 | `-history` / `-history-ttl` | 500 / 24h | 每房间历史条数和保留时长（只在内存，重启清空；私人房间最多 100 条） |
-| `-max-clients` / `-max-per-ip` / `-max-tcp-per-ip` / `-conn-per-min` | 1000 / 3 / 8 / 10 | 连接限制 |
+| `-max-clients` / `-max-per-ip` / `-max-tcp-per-ip` / `-conn-per-min` | 自动（`VIVANT_MAX_CLIENTS`）/ 3 / 8 / 10 | 连接限制；安装脚本按机器算出最多在线人数写进 `VIVANT_MAX_CLIENTS`，参考：512 MB → 900，1 GB → 2200，2 GB 2 核 → 4900，4 GB 2 核 → 5000，8 GB 4 核 → 10000 |
 | `-read-rate` | 32768 | 每个连接每秒最多发来多少字节，超出会被放慢而不是断开（突发 8 倍；0 = 不限）。正常打字和粘贴远远用不到 |
 | `-msg-rate` / `-msg-burst` / `-max-len` | 1/s / 5 / 500 | 发言限制 |
 | `-idle-timeout` | 1h | 不发言多久后断开（0 = 不断开） |

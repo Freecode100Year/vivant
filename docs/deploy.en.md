@@ -43,6 +43,7 @@ All installer output is in Chinese and English.
 | --- | --- |
 | `--port N` | SSH port for the chat, default 2222. For 22, move the system sshd first; the script adds the port capability itself |
 | `--admin-key KEY` | admin public key: `ssh-ed25519 AAAA…`, a `.pub` file path, or `github:USERNAME`; repeatable |
+| `--max-clients N` | most people online at once. Default `auto`: computed from this machine's RAM and CPU cores (half the RAM at 200 KB per person, 2500 per core, whichever is smaller, 100–20000) and recomputed on every reinstall or upgrade; a number you set is kept |
 | `--rooms LIST` | public rooms, e.g. `"general:大厅 Lobby,chinese:中文,tech:技术"` (the first is the lobby) |
 | `--domain NAME` | the domain users connect to: shown in the final connect command and used by `doctor` for DNS checks |
 | `--version vX.Y.Z` | install a specific release |
@@ -162,7 +163,7 @@ Config file `/etc/vivant.env`; after editing run `systemctl restart vivant`:
 | `VIVANT_TOR_EXITS` / `-tor-exits` | `on` | download Tor's exit list so Tor users share the generous limits; `off` disables |
 | `-quiet-above` | 20 | above this many people, join/leave lines become a summary every 30 s (-1 = never) |
 | `-history` / `-history-ttl` | 500 / 24h | messages kept per room, and for how long (memory only, cleared on restart; private rooms keep at most 100) |
-| `-max-clients` / `-max-per-ip` / `-max-tcp-per-ip` / `-conn-per-min` | 1000 / 3 / 8 / 10 | connection limits |
+| `-max-clients` / `-max-per-ip` / `-max-tcp-per-ip` / `-conn-per-min` | auto (`VIVANT_MAX_CLIENTS`) / 3 / 8 / 10 | connection limits; the installer works out the most people online for the machine and writes it to `VIVANT_MAX_CLIENTS`, e.g. 512 MB → 900, 1 GB → 2200, 2 GB 2 cores → 4900, 4 GB 2 cores → 5000, 8 GB 4 cores → 10000 |
 | `-read-rate` | 32768 | bytes per second a connection may send before it's slowed down, not dropped (burst 8×; 0 = off). Typing and pasting never get near it |
 | `-msg-rate` / `-msg-burst` / `-max-len` | 1/s / 5 / 500 | posting limits |
 | `-idle-timeout` | 1h | disconnect after this long without posting (0 = never) |

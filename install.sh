@@ -36,6 +36,7 @@ ALT_PORT=""
 PERSIST_BANS=""
 PURGE=0
 ROOMS=""
+MAX_CLIENTS=""
 DOMAIN=""
 ADMIN_KEYS=()
 DOWNLOAD_BASE="${VIVANT_DOWNLOAD_BASE:-${PTT_DOWNLOAD_BASE:-}}"
@@ -88,6 +89,8 @@ ${C_B}VIVANT 安装器 · installer${C_0}
                      also publish the chat as a Tor onion service, so the server never sees users' IPs
   --persist-bans     重启后保留封禁（会把哈希密钥存盘，见文档）· keep bans across restarts (stores a hash key on disk)
   --no-persist-bans  关闭上一项（默认封禁只在内存）· turn that off again (default: bans live in memory only)
+  --max-clients N    最多同时在线人数；默认 auto：按本机内存和 CPU 核数自动计算，重装/升级时重新计算
+                     maximum people online at once; default auto: from this machine's RAM and CPU cores, recalculated on reinstall/upgrade
   --from-source      从源码编译，不下载发布版 · build from source instead of downloading a release
 
 离线安装 Offline install
@@ -124,6 +127,8 @@ parse_args() {
 		--port=*) PORT=${1#*=}; shift ;;
 		--admin-key) ADMIN_KEYS+=("${2:?--admin-key needs a value}"); shift 2 ;;
 		--admin-key=*) ADMIN_KEYS+=("${1#*=}"); shift ;;
+		--max-clients) MAX_CLIENTS=${2:?--max-clients needs a value}; shift 2 ;;
+		--max-clients=*) MAX_CLIENTS=${1#*=}; shift ;;
 		--rooms) ROOMS=${2:?--rooms needs a value}; shift 2 ;;
 		--rooms=*) ROOMS=${1#*=}; shift ;;
 		--domain) DOMAIN=${2:?--domain needs a value}; shift 2 ;;
@@ -145,6 +150,10 @@ parse_args() {
 	done
 	if [ -n "$PORT" ]; then
 		[[ "$PORT" =~ ^[0-9]+$ ]] && [ "$PORT" -ge 1 ] && [ "$PORT" -le 65535 ] || die "端口无效 invalid port: $PORT"
+	fi
+	if [ -n "$MAX_CLIENTS" ] && [ "$MAX_CLIENTS" != auto ]; then
+		[[ "$MAX_CLIENTS" =~ ^[0-9]+$ ]] && [ "$MAX_CLIENTS" -ge 1 ] && [ "$MAX_CLIENTS" -le 20000 ] ||
+			die "--max-clients 要是 1–20000 或 auto · must be 1–20000 or auto: $MAX_CLIENTS"
 	fi
 	if [ -n "$ALT_PORT" ] && [ "$ALT_PORT" != off ]; then
 		[[ "$ALT_PORT" =~ ^[0-9]+$ ]] && [ "$ALT_PORT" -ge 1 ] && [ "$ALT_PORT" -le 65535 ] || die "--alt-port 无效 invalid: $ALT_PORT"
@@ -359,6 +368,8 @@ EOF
 }
 
 # ------------------------------------------------------------- config -------
+env_get() { sed -n "s/^$1=//p" "$ENV_FILE" 2>/dev/null | tail -1; }
+
 set_env() { # set_env KEY VALUE — replace or append a line in $ENV_FILE
 	local k=$1 v=$2
 	if grep -q "^$k=" "$ENV_FILE" 2>/dev/null; then
@@ -376,6 +387,65 @@ mem_limit() { # GOMEMLIMIT ≈ 60% of RAM, at least 128 MiB (Go releases only)
 	mib=$((kb * 6 / 10 / 1024))
 	[ "$mib" -lt 128 ] && mib=128
 	echo "${mib}MiB"
+}
+
+# capacity — how many people this machine can comfortably hold online at
+# once. Measured (docs/performance.md): ~75 KB of memory per full-interface
+# session and ~3000 sessions per CPU core at p99 < 0.1 s. Budgeted with 2x
+# headroom: half the RAM minus 64 MiB at 200 KB per person, and 2500 people
+# per core; the smaller wins, rounded down to 100, within 100–20000 (the unit
+# allows 65536 open files; each person can hold 2).
+mem_kib() {
+	local kb lim
+	kb=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null)
+	kb=${kb:-1048576}
+	# a container or VPS slice with a lower cgroup limit than the kernel reports
+	lim=$(cat /sys/fs/cgroup/memory.max 2>/dev/null || true)
+	if [[ "$lim" =~ ^[0-9]+$ ]] && [ $((lim / 1024)) -lt "$kb" ]; then kb=$((lim / 1024)); fi
+	echo "$kb"
+}
+
+capacity() { # capacity [KiB cores] — this machine's by default
+	local kb cores by_mem by_cpu n
+	kb=${1:-$(mem_kib)}
+	cores=${2:-$(nproc 2>/dev/null || echo 1)}
+	by_mem=$(((kb / 2 - 65536) / 200))
+	by_cpu=$((cores * 2500))
+	n=$by_mem
+	[ "$by_cpu" -lt "$n" ] && n=$by_cpu
+	n=$((n / 100 * 100))
+	[ "$n" -lt 100 ] && n=100
+	[ "$n" -gt 20000 ] && n=20000
+	echo "$n"
+}
+
+machine_desc() { # "1.0 GB 内存 RAM, 2 核 cores"
+	awk -v kb="$(mem_kib)" -v c="$(nproc 2>/dev/null || echo 1)" 'BEGIN { printf "%.1f GB 内存 RAM, %d 核 cores", kb / 1048576, c }'
+}
+
+# set_max_clients — VIVANT_MAX_CLIENTS in $ENV_FILE. VIVANT_MAX_CLIENTS_AUTO=1
+# (not read by vivant) marks a computed value, which every install/upgrade
+# recomputes (the VPS may have been resized); a number chosen with
+# --max-clients or by hand is left alone.
+set_max_clients() {
+	local cur auto n
+	cur=$(sed -n 's/^VIVANT_MAX_CLIENTS=//p' "$ENV_FILE" 2>/dev/null | tail -1)
+	auto=$(sed -n 's/^VIVANT_MAX_CLIENTS_AUTO=//p' "$ENV_FILE" 2>/dev/null | tail -1)
+	if [ -n "$MAX_CLIENTS" ] && [ "$MAX_CLIENTS" != auto ]; then
+		set_env VIVANT_MAX_CLIENTS "$MAX_CLIENTS"
+		set_env VIVANT_MAX_CLIENTS_AUTO 0
+		ok "最多同时在线 Max online: $MAX_CLIENTS（手动设置 set by hand）"
+	elif [ "$MAX_CLIENTS" = auto ] || [ -z "$cur" ] || [ "$auto" = 1 ]; then
+		n=$(capacity)
+		set_env VIVANT_MAX_CLIENTS "$n"
+		set_env VIVANT_MAX_CLIENTS_AUTO 1
+		ok "最多同时在线 Max online: $n（按 by $(machine_desc) 自动计算 · computed）"
+	else
+		info "最多同时在线 Max online: $cur（手动设置，未改动 · set by hand, kept）"
+	fi
+	if grep -q '^VIVANT_ARGS=.*-max-clients' "$ENV_FILE" 2>/dev/null; then
+		warn "VIVANT_ARGS 里的 -max-clients 优先于上面的值 · -max-clients in VIVANT_ARGS overrides it"
+	fi
 }
 
 write_env() {
@@ -419,6 +489,7 @@ EOF
 		ok "聊天记录改为保留 24 小时 · Chat history now kept for 24 hours"
 	fi
 	[ -n "$ROOMS" ] && set_env VIVANT_ROOMS "$ROOMS"
+	set_max_clients
 	# not read by vivant; lets "vivant-ctl doctor" check DNS for this name
 	[ -n "$DOMAIN" ] && set_env VIVANT_DOMAIN "$DOMAIN"
 	case "$ALT_PORT" in
@@ -632,6 +703,7 @@ ${C_G}${C_B}VIVANT 已在运行 · VIVANT is running.${C_0}  ($("$BIN" -version)
 
   连接 Connect:          ${C_B}ssh ${portflag}guest@$host${C_0}
   纯文本 Plain mode:     ssh ${portflag}plain@$host
+  最多在线 Max online:   $(env_get VIVANT_MAX_CLIENTS)  （--max-clients N 修改 · change with --max-clients N）
 EOF
 	local alt
 	alt=$(current_alt_port)
@@ -831,6 +903,7 @@ do_status() {
 	fi
 	echo "版本 Version:   $("$BIN" -version)"
 	echo "服务 Service:   $(systemctl is-active vivant 2>/dev/null || true) ($(systemctl is-enabled vivant 2>/dev/null || true))"
+	echo "最多在线 Max:   $(env_get VIVANT_MAX_CLIENTS)$( [ "$(env_get VIVANT_MAX_CLIENTS_AUTO)" = 1 ] && echo "（自动 auto: $(machine_desc)）")"
 	echo "端口 Port:      $(current_port || echo 2222)$( [ -n "$(current_alt_port)" ] && echo "（另有 also $(current_alt_port)）")"
 	local onion
 	onion=$(onion_name)
@@ -854,7 +927,6 @@ d_fail() { printf '  %s✗%s %s\n' "$C_R" "$C_0" "$*"; D_FAIL=$((D_FAIL + 1)); }
 d_fix() { printf '      → %s\n' "$*"; }
 d_head() { printf '\n%s%s%s\n' "$C_B" "$*" "$C_0"; }
 
-env_get() { sed -n "s/^$1=//p" "$ENV_FILE" 2>/dev/null | tail -1; }
 
 ip4_num() { # dotted quad -> integer
 	local IFS=. a b c d
