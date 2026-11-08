@@ -3,34 +3,84 @@ package io.github.freecode100year.vivant;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.security.SecureRandom;
+import java.util.UUID;
+
 /** User settings, kept in the app's private SharedPreferences. */
 final class Prefs {
     static final int DEFAULT_PORT = 2222;
     static final int DEFAULT_MAX_CLIENTS = 100;
+    static final String DEFAULT_ET_PEER = "tcp://public.easytier.top:11010";
+
+    static final String TUNNEL_OFF = "off";
+    static final String TUNNEL_EASYTIER = "easytier";
+    static final String TUNNEL_FRP = "frp";
+
+    /** This phone's address inside the EasyTier network. */
+    static final String ET_IP = "10.144.144.1";
 
     private Prefs() {}
 
-    private static SharedPreferences sp(Context c) {
+    static SharedPreferences sp(Context c) {
         return c.getSharedPreferences("vivant", Context.MODE_PRIVATE);
     }
 
+    // chat server
     static int port(Context c) { return sp(c).getInt("port", DEFAULT_PORT); }
+    /** Local-only status endpoint. */
+    static int healthPort(Context c) { return port(c) + 1; }
+    /** Local-only listener the tunnels forward to; everyone through it shares generous limits. */
+    static int relayPort(Context c) { return port(c) + 2; }
     static int maxClients(Context c) { return sp(c).getInt("max_clients", DEFAULT_MAX_CLIENTS); }
     static String rooms(Context c) { return sp(c).getString("rooms", ""); }
     static String extraArgs(Context c) { return sp(c).getString("extra_args", ""); }
     static boolean autostart(Context c) { return sp(c).getBoolean("autostart", false); }
     /** True while the user wants the server up (survives process death, used after reboot/update). */
     static boolean running(Context c) { return sp(c).getBoolean("running", false); }
+    static void setRunning(Context c, boolean on) { sp(c).edit().putBoolean("running", on).apply(); }
 
-    static void save(Context c, int port, int maxClients, String rooms, String extra, boolean autostart) {
-        sp(c).edit()
-                .putInt("port", port)
-                .putInt("max_clients", maxClients)
-                .putString("rooms", rooms)
-                .putString("extra_args", extra)
-                .putBoolean("autostart", autostart)
-                .apply();
+    // internet access
+    static String tunnel(Context c) { return sp(c).getString("tunnel", TUNNEL_OFF); }
+    static String etName(Context c) { return generated(c, "et_name", "vivant-", 10); }
+    static String etSecret(Context c) { return generated(c, "et_secret", "", 16); }
+    static String etPeer(Context c) {
+        String p = sp(c).getString("et_peer", "").trim();
+        return p.isEmpty() ? DEFAULT_ET_PEER : p;
+    }
+    static String etMachineId(Context c) {
+        String id = sp(c).getString("et_machine_id", null);
+        if (id == null) {
+            id = UUID.randomUUID().toString();
+            sp(c).edit().putString("et_machine_id", id).apply();
+        }
+        return id;
+    }
+    static String frpServer(Context c) { return sp(c).getString("frp_server", "").trim(); }
+    static int frpServerPort(Context c) { return sp(c).getInt("frp_server_port", 7000); }
+    static String frpToken(Context c) { return sp(c).getString("frp_token", ""); }
+    static int frpRemotePort(Context c) { return sp(c).getInt("frp_remote_port", DEFAULT_PORT); }
+    static String frpProxyName(Context c) { return generated(c, "frp_name", "vivant-", 6); }
+
+    /** A new random EasyTier network name and password. */
+    static void regenerateEasyTier(Context c) {
+        sp(c).edit().putString("et_name", "vivant-" + random(10)).putString("et_secret", random(16)).apply();
     }
 
-    static void setRunning(Context c, boolean on) { sp(c).edit().putBoolean("running", on).apply(); }
+    private static String generated(Context c, String key, String prefix, int n) {
+        String v = sp(c).getString(key, null);
+        if (v == null || v.isEmpty()) {
+            v = prefix + random(n);
+            sp(c).edit().putString(key, v).apply();
+        }
+        return v;
+    }
+
+    private static final String ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789"; // no look-alikes
+    private static final SecureRandom RNG = new SecureRandom();
+
+    static String random(int n) {
+        StringBuilder sb = new StringBuilder(n);
+        for (int i = 0; i < n; i++) sb.append(ALPHABET.charAt(RNG.nextInt(ALPHABET.length())));
+        return sb.toString();
+    }
 }

@@ -13,27 +13,25 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
-import android.os.SystemClock;
 
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Foreground service that runs the VIVANT server (the Rust binary shipped as
- * libvivant.so) as a child process, keeps the CPU and Wi-Fi awake while it
- * runs, restarts it if it crashes, and polls its /healthz for the online count.
+ * Foreground service that runs the VIVANT server (libvivant.so) and, if
+ * internet access is on, a tunnel (libeasytier.so or libfrpc.so) as child
+ * processes; keeps CPU and Wi-Fi awake, restarts them when they exit, and
+ * polls /healthz for the online count.
  */
 public class VivantService extends Service {
     static final String ACTION_START = "io.github.freecode100year.vivant.START";
@@ -43,10 +41,11 @@ public class VivantService extends Service {
     private static final int MAX_QUICK_FAILS = 3;
 
     private final Handler main = new Handler(Looper.getMainLooper());
-    private Process proc;
-    private long startedAt;
+    private final Child server = new Child(main);
+    private final Child tunnel = new Child(main);
+    private String tunnelKind = Prefs.TUNNEL_OFF;
     private boolean wanted;
-    private int quickFails;
+    private int quickFails, tunnelFails;
     private PowerManager.WakeLock wakeLock;
     private WifiManager.WifiLock wifiLock;
     private Thread poller;
@@ -69,103 +68,128 @@ public class VivantService extends Service {
         }
         goForeground();
         Prefs.setRunning(this, true);
-        wanted = true;
-        quickFails = 0;
-        ServerState.error = null;
-        acquireLocks();
-        if (proc == null) launch();
+        if (!wanted) {
+            wanted = true;
+            quickFails = 0;
+            tunnelFails = 0;
+            ServerState.error = null;
+            acquireLocks();
+            launchServer();
+            tunnelKind = Prefs.tunnel(this);
+            launchTunnel();
+        }
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-        wanted = false;
-        killProcess();
-        releaseLocks();
-        ServerState.running = false;
+        stopAll();
         super.onDestroy();
     }
 
-    // ---- process -------------------------------------------------------
+    // ---- chat server -----------------------------------------------------
 
-    private void launch() {
-        if (!wanted || proc != null) return;
+    private void launchServer() {
+        if (!wanted || server.alive()) return;
         int port = Prefs.port(this);
-        File bin = new File(getApplicationInfo().nativeLibraryDir, "libvivant.so");
         List<String> cmd = new ArrayList<>();
-        cmd.add(bin.getAbsolutePath());
-        cmd.add("-addr");
-        cmd.add(":" + port);
-        cmd.add("-host-key");
-        cmd.add(new File(getFilesDir(), "host_ed25519").getAbsolutePath());
-        cmd.add("-health-addr");
-        cmd.add("127.0.0.1:" + (port + 1));
-        cmd.add("-max-clients");
-        cmd.add(String.valueOf(Prefs.maxClients(this)));
-        // a phone usually has no use for the Tor exit list and it costs mobile data
-        cmd.add("-tor-exits=false");
+        cmd.add(new File(getApplicationInfo().nativeLibraryDir, "libvivant.so").getAbsolutePath());
+        add(cmd, "-addr", ":" + port,
+                "-host-key", new File(getFilesDir(), "host_ed25519").getAbsolutePath(),
+                "-health-addr", "127.0.0.1:" + Prefs.healthPort(this),
+                "-relay-addr", "127.0.0.1:" + Prefs.relayPort(this),
+                "-max-clients", String.valueOf(Prefs.maxClients(this)),
+                // a phone usually has no use for the Tor exit list and it costs mobile data
+                "-tor-exits=false");
         String rooms = Prefs.rooms(this).trim();
-        if (!rooms.isEmpty()) {
-            cmd.add("-rooms");
-            cmd.add(rooms);
-        }
+        if (!rooms.isEmpty()) add(cmd, "-rooms", rooms);
         cmd.addAll(splitArgs(Prefs.extraArgs(this)));
-
-        ProcessBuilder pb = new ProcessBuilder(cmd).redirectErrorStream(true).directory(getFilesDir());
-        Map<String, String> env = pb.environment();
-        env.put("HOME", getFilesDir().getAbsolutePath());
-        env.put("TMPDIR", getCacheDir().getAbsolutePath());
-        final Process p;
         try {
-            p = pb.start();
+            server.start(cmd, getFilesDir(), env(), new Child.Listener() {
+                @Override
+                public void onLine(String line) { ServerState.log(line); }
+
+                @Override
+                public void onExit(int code, long up) { serverExited(code, up); }
+            });
         } catch (Exception e) {
             ServerState.log("无法启动 · cannot start: " + e.getMessage());
             fail(getString(R.string.err_start, e.getMessage()));
             return;
         }
-        proc = p;
-        startedAt = SystemClock.elapsedRealtime();
         ServerState.running = true;
-        ServerState.port = port;
         ServerState.online = 0;
+        startPoller(Prefs.healthPort(this));
         updateNotification();
-
-        Thread reader = new Thread(() -> {
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = r.readLine()) != null) ServerState.log(line);
-            } catch (Exception ignored) {
-            }
-            int code;
-            try {
-                code = p.waitFor();
-            } catch (InterruptedException e) {
-                code = -1;
-            }
-            final int c = code;
-            main.post(() -> onExit(p, c));
-        }, "vivant-log");
-        reader.setDaemon(true);
-        reader.start();
-        startPoller(p, port);
     }
 
-    private void onExit(Process p, int code) {
-        if (p != proc) return; // a process we stopped ourselves
-        proc = null;
+    private void serverExited(int code, long uptimeMs) {
         ServerState.running = false;
         ServerState.online = -1;
         if (!wanted) return;
         ServerState.log("服务器退出 · server exited, code " + code);
-        if (SystemClock.elapsedRealtime() - startedAt < 10_000) quickFails++;
-        else quickFails = 0;
+        quickFails = uptimeMs < 10_000 ? quickFails + 1 : 0;
         if (quickFails >= MAX_QUICK_FAILS) {
             fail(getString(R.string.err_crash, code));
             return;
         }
         updateNotification();
-        main.postDelayed(this::launch, 2000);
+        main.postDelayed(this::launchServer, 2000);
     }
+
+    // ---- tunnel ----------------------------------------------------------
+
+    private void launchTunnel() {
+        if (!wanted || tunnel.alive() || Prefs.TUNNEL_OFF.equals(tunnelKind)) {
+            if (Prefs.TUNNEL_OFF.equals(tunnelKind)) ServerState.tunnel = ServerState.TUNNEL_OFF;
+            return;
+        }
+        final String kind = tunnelKind;
+        ServerState.tunnel = ServerState.TUNNEL_CONNECTING;
+        try {
+            tunnel.start(Tunnels.command(this, kind), tunnelDir(), env(), new Child.Listener() {
+                @Override
+                public void onLine(String line) {
+                    String shown = Tunnels.onLine(kind, line);
+                    if (shown != null) ServerState.log(shown);
+                    if (ServerState.tunnel == ServerState.TUNNEL_UP) tunnelFails = 0;
+                }
+
+                @Override
+                public void onExit(int code, long up) { tunnelExited(code); }
+            });
+        } catch (Exception e) {
+            ServerState.tunnel = ServerState.TUNNEL_FAILED;
+            ServerState.tunnelError = getString(R.string.err_tunnel_start, e.getMessage());
+        }
+        updateNotification();
+    }
+
+    private void tunnelExited(int code) {
+        if (!wanted) return;
+        ServerState.log("[" + tunnelKind + "] 退出 · exited, code " + code + "，稍后重试 · retrying");
+        if (ServerState.tunnel != ServerState.TUNNEL_FAILED) ServerState.tunnel = ServerState.TUNNEL_CONNECTING;
+        // networks come and go on a phone: keep retrying, backing off to a minute
+        long delay = Math.min(60_000L, 2000L << Math.min(tunnelFails++, 5));
+        updateNotification();
+        main.postDelayed(this::launchTunnel, delay);
+    }
+
+    private File tunnelDir() {
+        File d = new File(getFilesDir(), "tunnel");
+        //noinspection ResultOfMethodCallIgnored
+        d.mkdirs();
+        return d;
+    }
+
+    private Map<String, String> env() {
+        Map<String, String> e = new HashMap<>();
+        e.put("HOME", getFilesDir().getAbsolutePath());
+        e.put("TMPDIR", getCacheDir().getAbsolutePath());
+        return e;
+    }
+
+    // ---- stop ------------------------------------------------------------
 
     /** Gives up: leaves the error for the screen and stops the service. */
     private void fail(String why) {
@@ -175,53 +199,44 @@ public class VivantService extends Service {
     }
 
     private void shutdown() {
-        wanted = false;
-        killProcess();
-        releaseLocks();
-        ServerState.running = false;
-        ServerState.online = -1;
+        stopAll();
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
 
-    private void killProcess() {
+    private void stopAll() {
+        boolean was = wanted || server.alive() || tunnel.alive();
+        wanted = false;
         main.removeCallbacksAndMessages(null);
         if (poller != null) poller.interrupt();
         poller = null;
-        final Process p = proc;
-        proc = null;
-        if (p == null) return;
-        p.destroy(); // SIGTERM: the server shuts down cleanly
-        Thread t = new Thread(() -> {
-            try {
-                if (!p.waitFor(3, TimeUnit.SECONDS)) p.destroyForcibly();
-            } catch (InterruptedException ignored) {
-                p.destroyForcibly();
-            }
-        });
-        t.setDaemon(true);
-        t.start();
-        ServerState.log("已停止 · stopped");
+        tunnel.stop();
+        server.stop();
+        releaseLocks();
+        ServerState.running = false;
+        ServerState.online = -1;
+        ServerState.tunnel = ServerState.TUNNEL_OFF;
+        ServerState.tunnelError = null;
+        if (was) ServerState.log("已停止 · stopped");
     }
 
-    // ---- /healthz ------------------------------------------------------
+    // ---- /healthz --------------------------------------------------------
 
-    private void startPoller(Process p, int port) {
+    private void startPoller(int healthPort) {
         if (poller != null) poller.interrupt();
         poller = new Thread(() -> {
-            int lastOnline = -2;
-            while (!Thread.currentThread().isInterrupted() && p.isAlive()) {
+            int last = -2, lastTunnel = -2;
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
                     Thread.sleep(3000);
                 } catch (InterruptedException e) {
                     return;
                 }
-                JSONObject st = health(port + 1);
-                if (st == null) continue;
-                ServerState.online = st.optInt("online", 0);
-                ServerState.rooms = st.optInt("rooms", 0);
-                if (ServerState.online != lastOnline) {
-                    lastOnline = ServerState.online;
+                JSONObject st = health(healthPort);
+                if (st != null) ServerState.online = st.optInt("online", 0);
+                if (ServerState.online != last || ServerState.tunnel != lastTunnel) {
+                    last = ServerState.online;
+                    lastTunnel = ServerState.tunnel;
                     main.post(this::updateNotification);
                 }
             }
@@ -249,7 +264,7 @@ public class VivantService extends Service {
         }
     }
 
-    // ---- foreground / locks ---------------------------------------------
+    // ---- foreground / locks ------------------------------------------------
 
     private void goForeground() {
         NotificationManager nm = getSystemService(NotificationManager.class);
@@ -278,10 +293,10 @@ public class VivantService extends Service {
         PendingIntent stop = PendingIntent.getService(this, 1,
                 new Intent(this, VivantService.class).setAction(ACTION_STOP),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        int port = Prefs.port(this);
         String text = ServerState.running
-                ? getString(R.string.notif_text, port, Math.max(ServerState.online, 0))
+                ? getString(R.string.notif_text, Math.max(ServerState.online, 0))
                 : getString(R.string.notif_starting);
+        if (ServerState.tunnel == ServerState.TUNNEL_UP) text += " · " + getString(R.string.notif_internet);
         return new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat)
                 .setContentTitle(getString(R.string.notif_title))
@@ -316,7 +331,11 @@ public class VivantService extends Service {
         if (wifiLock != null && wifiLock.isHeld()) wifiLock.release();
     }
 
-    /** Splits "extra arguments" like a shell would for spaces and "double" / 'single' quotes. */
+    private static void add(List<String> l, String... a) {
+        for (String s : a) l.add(s);
+    }
+
+    /** Splits "extra flags" like a shell would for spaces and "double" / 'single' quotes. */
     static List<String> splitArgs(String s) {
         List<String> out = new ArrayList<>();
         StringBuilder cur = new StringBuilder();

@@ -158,6 +158,7 @@ sudo vivant-ctl status        # 输出里的 Host key: SHA256:…
 | `VIVANT_HEALTH_ADDR` / `-health-addr` | `127.0.0.1:2223` | `GET /healthz`，只返回计数 |
 | `VIVANT_ADMIN_USER` / `-admin-user` | `admin` | 管理员登录用的用户名 |
 | `VIVANT_ONION_ADDR` / `-onion-addr` | — | 给 Tor 洋葱服务用的本地监听地址（`--tor` 自动设为 `127.0.0.1:2224`） |
+| `VIVANT_RELAY_ADDR` / `-relay-addr` | — | 给内网穿透（frp、EasyTier 等）用的本地监听地址，经它进来的人共用一组宽松限额（安卓版自动设置） |
 | `VIVANT_BAN_FILE` / `-ban-file` | — | 封禁持久化文件（`--persist-bans` 设为 `/var/lib/vivant/bans.json`） |
 | `VIVANT_ALT_ADDR` / `-alt-addr` | — | 额外监听地址，逗号分隔（`--alt-port 443` 设为 `:443`） |
 | `VIVANT_TOR_EXITS` / `-tor-exits` | `on` | 定期下载 Tor 出口节点列表，让 Tor 用户共用宽松限额；`off` 关闭 |

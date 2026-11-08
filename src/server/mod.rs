@@ -55,6 +55,9 @@ pub struct Options {
     pub onion_addr: String,
     /// TCP connections allowed through the onion listener (default 400)
     pub onion_max_tcp: usize,
+    /// optional local listener for tunnels (frp, EasyTier, …): every client
+    /// arrives from the tunnel's own address, so they share the onion bucket
+    pub relay_addr: String,
     pub ban_file: Option<PathBuf>,
     /// extra listen addresses, e.g. ":443"
     pub alt_addrs: Vec<String>,
@@ -184,6 +187,12 @@ impl Server {
             let a = &self.opt.onion_addr;
             let l = listen(a).await.map_err(|e| format!("onion listener: {e}"))?;
             log_info!("onion listener", addr = a);
+            listeners.push((l, true));
+        }
+        if !self.opt.relay_addr.is_empty() {
+            let a = &self.opt.relay_addr;
+            let l = listen(a).await.map_err(|e| format!("relay listener: {e}"))?;
+            log_info!("relay listener", addr = a);
             listeners.push((l, true));
         }
         let (fatal_tx, mut fatal_rx) = mpsc::channel::<String>(1);

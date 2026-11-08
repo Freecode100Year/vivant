@@ -5,3 +5,4 @@ local.properties
 *.keystore
 # built by build-native.sh
 app/src/main/jniLibs/
+.tunnel-src/

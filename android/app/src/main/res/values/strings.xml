@@ -1,43 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">VIVANT</string>
-    <string name="subtitle">匿名 SSH 聊天室服务器 · Anonymous SSH chat server</string>
+    <string name="subtitle">把这台手机变成匿名聊天室 · Turn this phone into an anonymous chat room</string>
 
     <string name="status_running">● 运行中 · Running</string>
     <string name="status_starting">● 启动中… · Starting…</string>
     <string name="status_stopped">○ 已停止 · Stopped</string>
     <string name="online_count">在线 · Online: %1$d</string>
-    <string name="start">启动服务器 · Start server</string>
+    <string name="start">启动 · Start</string>
     <string name="stop">停止 · Stop</string>
+    <string name="battery">允许后台运行（防止锁屏后被关掉）· Allow running in background</string>
 
-    <string name="connect_title">怎么连接 · How to connect</string>
-    <string name="connect_hint">同一 Wi-Fi 或连上这台手机热点的设备，用下面任意一条命令进入（iPhone/iPad 用 Termius、Blink 等 SSH App）。手机流量网络通常无法从外网直连。\nDevices on the same Wi-Fi or on this phone\'s hotspot join with any line below (on iPhone/iPad use an SSH app such as Termius or Blink). Mobile data is usually not reachable from the internet.</string>
+    <string name="tunnel_connecting">外网：连接中… · Internet: connecting…</string>
+    <string name="tunnel_up">外网：已连通 ✓ · Internet: connected ✓</string>
+    <string name="tunnel_failed">外网：失败 · Internet: failed</string>
+
+    <string name="connect_title">怎么进入 · How to join</string>
+    <string name="connect_lan">同一 Wi-Fi 或连着本机热点的人，输入下面任意一行（iPhone 用 Termius 等 SSH App）· Same Wi-Fi or this phone\'s hotspot — type any line (iPhone: an SSH app like Termius):</string>
+    <string name="net_hint_et">外网的人：先装 EasyTier（easytier.cn），再依次运行下面两行 · From anywhere: install EasyTier (easytier.cn), then run these two lines:</string>
+    <string name="net_hint_et_app">（用 EasyTier App 的话：加入同名网络后 ssh -p %1$d guest@%2$s）· (EasyTier app: join the network, then ssh -p %1$d guest@%2$s)</string>
+    <string name="net_hint_frp">外网的人，输入 · From anywhere, type:</string>
     <string name="copy">复制 · Copy</string>
     <string name="copied">已复制 · Copied</string>
     <string name="no_network">没有网络连接 · No network</string>
-    <string name="fingerprint">主机指纹（首次连接时核对）· Host key fingerprint (check on first connect):\n%1$s</string>
-    <string name="fingerprint_none">主机密钥会在第一次启动时生成 · The host key is created on first start</string>
+    <string name="fingerprint">主机指纹 · Host key: %1$s</string>
+    <string name="fingerprint_none">第一次启动后会显示主机指纹 · The host key appears after the first start</string>
 
-    <string name="settings_title">设置（停止后才能修改）· Settings (stop to edit)</string>
-    <string name="port">端口 · Port (1024–65534)</string>
+    <string name="net_title">外网访问 · Internet access</string>
+    <string name="net_off">关闭（只限局域网 / 热点）· Off (LAN / hotspot only)</string>
+    <string name="net_et">EasyTier（不用服务器）· EasyTier (no server needed)</string>
+    <string name="net_frp">FRP（用自己的服务器）· FRP (your own server)</string>
+    <string name="et_hint">免费、点对点打洞，连不通时走公共中继。对方也要装 EasyTier。把网络名和密码发给想进来的人。· Free P2P with a public relay as fallback. Visitors install EasyTier too — send them the name and password.</string>
+    <string name="et_name">网络名 · Network name</string>
+    <string name="et_secret">网络密码 · Network password</string>
+    <string name="et_new">换一组 · New pair</string>
+    <string name="frp_hint">需要一台装了 frps 的公网服务器；对方什么都不用装，直接 ssh。· Needs a public server running frps; visitors install nothing.</string>
+    <string name="frp_server">服务器地址 · Server address</string>
+    <string name="frp_server_hint">frp.example.com</string>
+    <string name="frp_server_port">服务器端口 · Server port (bindPort)</string>
+    <string name="frp_token">令牌（没有就留空）· Token (empty if none)</string>
+    <string name="frp_remote_port">外网端口 · Public port</string>
+
+    <string name="adv_title">▸ 高级设置 · Advanced</string>
+    <string name="adv_title_open">▾ 高级设置 · Advanced</string>
+    <string name="settings_locked">停止后才能修改 · Stop the server to change these</string>
+    <string name="port">端口 · Port (1024–65000)</string>
     <string name="max_clients">最多同时在线 · Max online users</string>
     <string name="rooms">公共房间（可选）· Public rooms (optional)</string>
     <string name="rooms_hint">lobby:大厅,tech:技术</string>
-    <string name="extra">额外参数（高级，可选）· Extra flags (advanced, optional)</string>
+    <string name="et_peer">EasyTier 节点（逗号分隔）· EasyTier nodes (comma separated)</string>
+    <string name="et_peer_default">tcp://public.easytier.top:11010</string>
+    <string name="extra">额外参数（可选）· Extra flags (optional)</string>
     <string name="extra_hint">-history-ttl 24h -msg-rate 2</string>
     <string name="autostart">开机自动启动 · Start on boot</string>
-    <string name="battery">关闭电池优化（防止后台被杀）· Disable battery optimisation (keeps it alive)</string>
 
-    <string name="log_title">日志（不含任何用户信息）· Log (no user data)</string>
+    <string name="log_title">▸ 日志（不含用户信息）· Log (no user data)</string>
+    <string name="log_title_open">▾ 日志（不含用户信息）· Log (no user data)</string>
     <string name="log_empty">还没有日志 · No log yet</string>
 
-    <string name="err_port">端口需在 1024–65534 之间 · Port must be 1024–65534</string>
+    <string name="err_port">端口需在 1024–65000 之间 · Port must be 1024–65000</string>
     <string name="err_max">请输入 1–100000 · Enter 1–100000</string>
+    <string name="err_need">请填写 · Required</string>
     <string name="err_start">无法启动服务器 · Could not start the server: %1$s</string>
-    <string name="err_crash">服务器连续启动失败（退出码 %1$d），请看日志，常见原因是端口被占用 · The server keeps failing (exit code %1$d); see the log — often the port is already in use</string>
+    <string name="err_tunnel_start">无法启动外网访问 · Could not start internet access: %1$s</string>
+    <string name="err_crash">服务器连续启动失败（退出码 %1$d），常见原因是端口被占用，可在高级设置里换端口 · The server keeps failing (exit code %1$d) — often the port is in use; change it under Advanced</string>
 
     <string name="channel_name">服务器状态 · Server status</string>
     <string name="notif_title">VIVANT 聊天室运行中 · chat room running</string>
-    <string name="notif_text">端口 · port %1$d · 在线 · online %2$d</string>
+    <string name="notif_text">在线 · online %1$d</string>
+    <string name="notif_internet">外网已连通 · internet on</string>
     <string name="notif_starting">启动中… · Starting…</string>
 </resources>

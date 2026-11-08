@@ -40,7 +40,7 @@
             android:layout_marginBottom="12dp"
             android:text="@string/subtitle" />
 
-        <!-- status -->
+        <!-- 1. status + the one button -->
         <LinearLayout style="@style/Card">
 
             <TextView
@@ -59,6 +59,14 @@
                 android:textSize="16sp" />
 
             <TextView
+                android:id="@+id/tunnel_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="16sp"
+                android:visibility="gone" />
+
+            <TextView
                 android:id="@+id/error"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -71,10 +79,19 @@
                 android:id="@+id/toggle"
                 style="@style/Btn"
                 android:layout_width="match_parent"
-                android:layout_marginTop="10dp" />
+                android:layout_marginTop="10dp"
+                android:minHeight="60dp"
+                android:textSize="18sp" />
+
+            <Button
+                android:id="@+id/battery"
+                style="@style/BtnLight"
+                android:layout_width="match_parent"
+                android:layout_marginTop="4dp"
+                android:text="@string/battery" />
         </LinearLayout>
 
-        <!-- how to connect -->
+        <!-- 2. how to connect -->
         <LinearLayout style="@style/Card">
 
             <TextView
@@ -85,19 +102,20 @@
             <TextView
                 style="@style/Hint"
                 android:layout_marginTop="4dp"
-                android:text="@string/connect_hint" />
+                android:text="@string/connect_lan" />
 
             <TextView
                 android:id="@+id/connect"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/log_bg"
-                android:fontFamily="monospace"
-                android:padding="10dp"
-                android:textColor="@color/log_text"
-                android:textIsSelectable="true"
-                android:textSize="14sp" />
+                style="@style/Mono" />
+
+            <TextView
+                android:id="@+id/net_hint"
+                style="@style/Hint"
+                android:layout_marginTop="10dp" />
+
+            <TextView
+                android:id="@+id/net_connect"
+                style="@style/Mono" />
 
             <Button
                 android:id="@+id/copy"
@@ -114,13 +132,124 @@
                 android:textIsSelectable="true" />
         </LinearLayout>
 
-        <!-- settings -->
+        <!-- 3. internet access: off / EasyTier / FRP -->
         <LinearLayout style="@style/Card">
 
             <TextView
                 style="@style/Label"
                 android:layout_marginTop="0dp"
-                android:text="@string/settings_title" />
+                android:text="@string/net_title" />
+
+            <RadioGroup
+                android:id="@+id/tunnel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp">
+
+                <RadioButton
+                    android:id="@+id/tunnel_off"
+                    style="@style/Radio"
+                    android:text="@string/net_off" />
+
+                <RadioButton
+                    android:id="@+id/tunnel_et"
+                    style="@style/Radio"
+                    android:text="@string/net_et" />
+
+                <RadioButton
+                    android:id="@+id/tunnel_frp"
+                    style="@style/Radio"
+                    android:text="@string/net_frp" />
+            </RadioGroup>
+
+            <LinearLayout
+                android:id="@+id/et_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView style="@style/Hint" android:text="@string/et_hint" />
+
+                <TextView style="@style/Label" android:text="@string/et_name" />
+                <EditText
+                    android:id="@+id/et_name"
+                    style="@style/Field"
+                    android:fontFamily="monospace"
+                    android:importantForAutofill="no"
+                    android:inputType="text|textNoSuggestions" />
+
+                <TextView style="@style/Label" android:text="@string/et_secret" />
+                <EditText
+                    android:id="@+id/et_secret"
+                    style="@style/Field"
+                    android:fontFamily="monospace"
+                    android:importantForAutofill="no"
+                    android:inputType="text|textNoSuggestions" />
+
+                <Button
+                    android:id="@+id/et_new"
+                    style="@style/BtnLight"
+                    android:layout_width="wrap_content"
+                    android:text="@string/et_new" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/frp_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView style="@style/Hint" android:text="@string/frp_hint" />
+
+                <TextView style="@style/Label" android:text="@string/frp_server" />
+                <EditText
+                    android:id="@+id/frp_server"
+                    style="@style/Field"
+                    android:hint="@string/frp_server_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="textUri" />
+
+                <TextView style="@style/Label" android:text="@string/frp_server_port" />
+                <EditText
+                    android:id="@+id/frp_server_port"
+                    style="@style/Field"
+                    android:importantForAutofill="no"
+                    android:inputType="number"
+                    android:maxLength="5" />
+
+                <TextView style="@style/Label" android:text="@string/frp_token" />
+                <EditText
+                    android:id="@+id/frp_token"
+                    style="@style/Field"
+                    android:importantForAutofill="no"
+                    android:inputType="textPassword" />
+
+                <TextView style="@style/Label" android:text="@string/frp_remote_port" />
+                <EditText
+                    android:id="@+id/frp_remote_port"
+                    style="@style/Field"
+                    android:importantForAutofill="no"
+                    android:inputType="number"
+                    android:maxLength="5" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 4. advanced (folded) -->
+        <TextView
+            android:id="@+id/adv_toggle"
+            style="@style/Fold"
+            android:text="@string/adv_title" />
+
+        <LinearLayout
+            android:id="@+id/adv_group"
+            style="@style/Card"
+            android:visibility="gone">
+
+            <TextView
+                style="@style/Hint"
+                android:text="@string/settings_locked" />
 
             <TextView style="@style/Label" android:text="@string/port" />
             <EditText
@@ -146,6 +275,15 @@
                 android:importantForAutofill="no"
                 android:inputType="text" />
 
+            <TextView style="@style/Label" android:text="@string/et_peer" />
+            <EditText
+                android:id="@+id/et_peer"
+                style="@style/Field"
+                android:fontFamily="monospace"
+                android:hint="@string/et_peer_default"
+                android:importantForAutofill="no"
+                android:inputType="textUri" />
+
             <TextView style="@style/Label" android:text="@string/extra" />
             <EditText
                 android:id="@+id/extra"
@@ -165,41 +303,31 @@
                 android:text="@string/autostart"
                 android:textColor="@color/text"
                 android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/battery"
-                style="@style/Btn"
-                android:layout_width="match_parent"
-                android:layout_marginTop="4dp"
-                android:text="@string/battery" />
         </LinearLayout>
 
-        <!-- log -->
-        <LinearLayout style="@style/Card">
+        <!-- 5. log (folded) -->
+        <TextView
+            android:id="@+id/log_toggle"
+            style="@style/Fold"
+            android:text="@string/log_title" />
+
+        <ScrollView
+            android:id="@+id/log_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="240dp"
+            android:background="@drawable/log_bg"
+            android:nestedScrollingEnabled="true"
+            android:visibility="gone">
 
             <TextView
-                style="@style/Label"
-                android:layout_marginTop="0dp"
-                android:text="@string/log_title" />
-
-            <ScrollView
-                android:id="@+id/log_scroll"
+                android:id="@+id/log"
                 android:layout_width="match_parent"
-                android:layout_height="220dp"
-                android:layout_marginTop="6dp"
-                android:background="@drawable/log_bg"
-                android:nestedScrollingEnabled="true">
-
-                <TextView
-                    android:id="@+id/log"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:padding="8dp"
-                    android:textColor="@color/log_text"
-                    android:textIsSelectable="true"
-                    android:textSize="11sp" />
-            </ScrollView>
-        </LinearLayout>
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:padding="8dp"
+                android:textColor="@color/log_text"
+                android:textIsSelectable="true"
+                android:textSize="11sp" />
+        </ScrollView>
     </LinearLayout>
 </ScrollView>

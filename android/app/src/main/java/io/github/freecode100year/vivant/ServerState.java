@@ -7,14 +7,17 @@ import java.util.regex.Pattern;
 final class ServerState {
     private static final int MAX_LINES = 400;
     private static final ArrayDeque<String> LINES = new ArrayDeque<>();
-    // "time=2026-11-08T03:09:00.123-05:00 level=INFO msg=..." -> "03:09:00 INFO msg=..."
+    // vivant: "time=2026-11-08T03:09:00.123-05:00 level=INFO msg=..." -> "03:09:00 INFO msg=..."
     private static final Pattern TIME = Pattern.compile("^time=\\S*T(\\d\\d:\\d\\d:\\d\\d)\\S*\\s+level=");
 
+    // internet access (tunnel) state
+    static final int TUNNEL_OFF = 0, TUNNEL_CONNECTING = 1, TUNNEL_UP = 2, TUNNEL_FAILED = 3;
+
     static volatile boolean running;
-    static volatile int port;
     static volatile int online = -1;
-    static volatile int rooms = -1;
     static volatile String error;
+    static volatile int tunnel = TUNNEL_OFF;
+    static volatile String tunnelError;
     private static long version;
 
     private ServerState() {}

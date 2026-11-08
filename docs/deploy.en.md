@@ -158,6 +158,7 @@ Config file `/etc/vivant.env`; after editing run `systemctl restart vivant`:
 | `VIVANT_HEALTH_ADDR` / `-health-addr` | `127.0.0.1:2223` | `GET /healthz`, counts only |
 | `VIVANT_ADMIN_USER` / `-admin-user` | `admin` | username admins log in with |
 | `VIVANT_ONION_ADDR` / `-onion-addr` | — | local listener for the Tor onion service (`--tor` sets `127.0.0.1:2224`) |
+| `VIVANT_RELAY_ADDR` / `-relay-addr` | — | local listener for tunnels (frp, EasyTier, …); everyone arriving through it shares generous limits (set automatically on Android) |
 | `VIVANT_BAN_FILE` / `-ban-file` | — | ban persistence file (`--persist-bans` sets `/var/lib/vivant/bans.json`) |
 | `VIVANT_ALT_ADDR` / `-alt-addr` | — | extra listen addresses, comma separated (`--alt-port 443` sets `:443`) |
 | `VIVANT_TOR_EXITS` / `-tor-exits` | `on` | download Tor's exit list so Tor users share the generous limits; `off` disables |

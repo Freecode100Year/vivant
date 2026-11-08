@@ -101,6 +101,11 @@ fn main() {
         &env_or("ONION_ADDR", ""),
         "给 Tor 洋葱服务用的本地监听地址，例如 127.0.0.1:2224 · extra listener for a Tor onion service, e.g. 127.0.0.1:2224",
     );
+    fs.string(
+        "relay-addr",
+        &env_or("RELAY_ADDR", ""),
+        "给内网穿透（frp、EasyTier 等）用的本地监听地址，经它进来的人共用一组宽松限额，例如 127.0.0.1:2225 · local listener for tunnels (frp, EasyTier, …); everyone arriving through it shares generous limits, e.g. 127.0.0.1:2225",
+    );
     fs.float("msg-rate", 1.0, "每秒允许发送的消息数（持续）· messages per second allowed (sustained)");
     fs.float("msg-burst", 5.0, "允许连续发送的消息数 · message burst size");
     fs.int("max-len", 500, "单条消息最大字数 · maximum message length in characters");
@@ -208,6 +213,7 @@ fn main() {
         admin_user: fs.get_string("admin-user"),
         onion_addr,
         onion_max_tcp: 0,
+        relay_addr: fs.get_string("relay-addr"),
         ban_file: Some(ban_file).filter(|s| !s.is_empty()).map(Into::into),
         alt_addrs: fs.get_string("alt-addr").split(',').map(str::trim).filter(|s| !s.is_empty()).map(String::from).collect(),
         tor_exits,

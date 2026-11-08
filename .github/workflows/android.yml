@@ -1,13 +1,14 @@
 name: Android
 
-# Builds the Android APK: the Rust server cross-compiled with the NDK and
-# packed into a small app that runs it as a foreground service.
-# 构建安卓 APK（手机上运行的 VIVANT 服务器）。
+# Builds the Android APKs: the Rust server plus the EasyTier and frp tunnel
+# clients, all cross-compiled from source with the NDK, packed into a small
+# app that runs them as a foreground service.
+# 构建安卓 APK（手机上运行的 VIVANT 服务器 + EasyTier / frp 内网穿透）。
 #
 # Stable signing (so updates install over each other): add the repository
 # secrets ANDROID_KEYSTORE_BASE64 (base64 of a .jks), ANDROID_KEYSTORE_PASSWORD,
-# ANDROID_KEY_ALIAS and optionally ANDROID_KEY_PASSWORD. Without them the APK
-# is signed with a throwaway debug key.
+# ANDROID_KEY_ALIAS and optionally ANDROID_KEY_PASSWORD. Without them the APKs
+# are signed with a throwaway debug key.
 on:
   push:
     branches: [main, android]
@@ -26,7 +27,65 @@ permissions:
   contents: read
 
 jobs:
+  easytier:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a, x86_64]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler cmake >/dev/null
+      - name: Versions
+        run: cat android/tunnels.env >> "$GITHUB_ENV"
+      - name: Source
+        run: git clone -q --depth 1 --branch "$EASYTIER_VERSION" https://github.com/EasyTier/EasyTier android/.tunnel-src/easytier
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: android/.tunnel-src/easytier -> target
+          key: easytier-${{ env.EASYTIER_VERSION }}-${{ matrix.abi }}
+      - name: Build
+        run: |
+          set -o pipefail
+          android/build-tunnels.sh easytier ${{ matrix.abi }} 2>&1 | tee build.log
+          ls -l android/app/src/main/jniLibs/${{ matrix.abi }}/
+      - name: Report failure
+        if: failure()
+        run: .github/report-failure.sh build.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: easytier-${{ matrix.abi }}
+          path: android/app/src/main/jniLibs/${{ matrix.abi }}/libeasytier.so
+          if-no-files-found: error
+
+  frpc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Versions
+        run: cat android/tunnels.env >> "$GITHUB_ENV"
+      - name: Source
+        run: git clone -q --depth 1 --branch "$FRP_VERSION" https://github.com/fatedier/frp android/.tunnel-src/frp
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: android/.tunnel-src/frp/go.mod
+          cache-dependency-path: android/.tunnel-src/frp/go.sum
+      - name: Build
+        run: |
+          set -o pipefail
+          android/build-tunnels.sh frpc 2>&1 | tee build.log
+          file android/app/src/main/jniLibs/*/libfrpc.so
+      - name: Report failure
+        if: failure()
+        run: .github/report-failure.sh build.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frpc
+          path: android/app/src/main/jniLibs/
+          if-no-files-found: error
+
   apk:
+    needs: [easytier, frpc]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -53,9 +112,22 @@ jobs:
       - name: Server for Android (NDK)
         run: |
           set -o pipefail
-          echo "NDK: $ANDROID_NDK_LATEST_HOME"
-          android/build-native.sh 2>&1 | tee native.log
-          file android/app/src/main/jniLibs/*/libvivant.so
+          android/build-native.sh 2>&1 | tee build.log
+
+      - name: Tunnel clients
+        uses: actions/download-artifact@v4
+        with:
+          path: tunnels
+
+      - name: Collect native programs
+        run: |
+          set -e
+          J=android/app/src/main/jniLibs
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            cp tunnels/easytier-$abi/libeasytier.so $J/$abi/
+            cp tunnels/frpc/$abi/libfrpc.so $J/$abi/
+          done
+          ls -l $J/*
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -69,7 +141,7 @@ jobs:
           KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ -z "$KS" ]; then
-            echo "::notice::No ANDROID_KEYSTORE_BASE64 secret — APK is debug-signed"
+            echo "::notice::No ANDROID_KEYSTORE_BASE64 secret — APKs are debug-signed"
             exit 0
           fi
           echo "$KS" | base64 -d > "$RUNNER_TEMP/release.jks"
@@ -83,28 +155,27 @@ jobs:
       - name: APK
         run: |
           set -o pipefail
-          gradle -p android --no-daemon assembleRelease 2>&1 | tee gradle.log
-          apk=android/app/build/outputs/apk/release/app-release.apk
-          unzip -l "$apk" | grep libvivant.so
-          for abi in arm64-v8a armeabi-v7a x86_64; do unzip -l "$apk" | grep -q "lib/$abi/libvivant.so" || { echo "missing $abi"; exit 1; }; done
-          mkdir -p out && cp "$apk" out/vivant-android.apk
+          gradle -p android --no-daemon assembleRelease 2>&1 | tee build.log
+          d=android/app/build/outputs/apk/release
+          mkdir -p out
+          cp $d/app-universal-release.apk out/vivant-android.apk
+          cp $d/app-arm64-v8a-release.apk out/vivant-android-arm64.apk
+          cp $d/app-armeabi-v7a-release.apk out/vivant-android-armv7.apk
+          cp $d/app-x86_64-release.apk out/vivant-android-x86_64.apk
+          for f in libvivant.so libeasytier.so libfrpc.so; do
+            for abi in arm64-v8a armeabi-v7a x86_64; do
+              unzip -l out/vivant-android.apk | grep -q "lib/$abi/$f" || { echo "missing $abi/$f"; exit 1; }
+            done
+            unzip -l out/vivant-android-arm64.apk | grep -q "lib/arm64-v8a/$f" || { echo "arm64 apk missing $f"; exit 1; }
+          done
           ls -l out
 
-      # Actions logs need a login even on a public repo; annotations don't, so
-      # surface the tail of a failed build there.
       - name: Report failure
         if: failure()
-        run: |
-          for f in native.log gradle.log; do
-            [ -f "$f" ] || continue
-            msg=$(grep -E "error|Error|ERROR|FAILED|What went wrong|^>|warning: unused" "$f" | tail -40)
-            [ -n "$msg" ] || msg=$(tail -40 "$f")
-            msg=${msg//'%'/'%25'}; msg=${msg//$'\n'/'%0A'}; msg=${msg//$'\r'/}
-            echo "::error title=$f::$msg"
-          done
+        run: .github/report-failure.sh build.log
 
       - uses: actions/upload-artifact@v4
         with:
-          name: vivant-android.apk
-          path: out/vivant-android.apk
+          name: vivant-android-apks
+          path: out/*.apk
           if-no-files-found: error
