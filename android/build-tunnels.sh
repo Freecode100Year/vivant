@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
-# Builds the bundled tunnel tools for Android from their official sources:
-#   easytier-core (EasyTier, Rust) -> app/src/main/jniLibs/<abi>/libeasytier.so
-#   frpc          (frp, Go + cgo)  -> app/src/main/jniLibs/<abi>/libfrpc.so  (no admin web UI)
-# Like libvivant.so these are plain executables, named .so so Android
-# extracts them where an app may run them.
+# Builds the bundled frp client for Android from its official source:
+#   frpc (frp, Go + cgo) -> app/src/main/jniLibs/<abi>/libfrpc.so  (no admin web UI)
+# Like libvivant.so it is a plain executable, named .so so Android extracts
+# it where an app may run it. (Tor comes prebuilt from tor-android.)
 #
-# 从官方源码为安卓编译 EasyTier 和 frpc。
+# 从官方源码为安卓编译 frpc。
 #
-#   ANDROID_NDK_HOME=… android/build-tunnels.sh easytier|frpc [abi ...]
-# Needs: git, cargo + rustup (EasyTier pins its own toolchain), protoc, Go.
+#   ANDROID_NDK_HOME=… android/build-tunnels.sh frpc [abi ...]
+# Needs: git, Go.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=/dev/null
 . "$here/tunnels.env"
-tool=${1:?usage: build-tunnels.sh easytier|frpc [abi ...]}
+tool=${1:?usage: build-tunnels.sh frpc [abi ...]}
 shift
 NDK=${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_ROOT:-}}}
 [ -d "$NDK" ] || { echo "set ANDROID_NDK_HOME" >&2; exit 1; }
@@ -41,22 +40,6 @@ for abi in "${abis[@]}"; do
 	out=$here/app/src/main/jniLibs/$abi
 	mkdir -p "$out"
 	case $tool in
-	easytier)
-		fetch EasyTier/EasyTier "$EASYTIER_VERSION" easytier
-		env_triple=$(echo "$triple" | tr '[:lower:]-' '[:upper:]_')
-		under=${triple//-/_}
-		(
-			cd "$work/easytier"
-			rustup target add "$triple" >/dev/null
-			export ANDROID_NDK_ROOT=$NDK ANDROID_NDK_HOME=$NDK
-			export "CARGO_TARGET_${env_triple}_LINKER=$TC/$clang"
-			# bindgen (kcp-sys and friends) must parse the NDK's headers, not the host's
-			export "BINDGEN_EXTRA_CLANG_ARGS_${under}=--sysroot=$TC/../sysroot --target=${clang%-clang}" "CC_${under}=$TC/$clang" "CXX_${under}=$TC/$clang++" "AR_${under}=$TC/llvm-ar"
-			cargo build --release --locked -p easytier --bin easytier-core --target "$triple"
-		)
-		cp "$work/easytier/target/$triple/release/easytier-core" "$out/libeasytier.so"
-		"$TC/llvm-strip" "$out/libeasytier.so"
-		;;
 	frpc)
 		fetch fatedier/frp "$FRP_VERSION" frp
 		(

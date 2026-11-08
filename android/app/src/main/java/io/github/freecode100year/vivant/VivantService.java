@@ -96,8 +96,9 @@ public class VivantService extends Service {
         List<String> cmd = new ArrayList<>();
         cmd.add(new File(getApplicationInfo().nativeLibraryDir, "libvivant.so").getAbsolutePath());
         boolean onion = Prefs.TUNNEL_TOR.equals(Prefs.tunnel(this));
-        // Tor without LAN: nothing but the phone itself can reach the server directly
-        add(cmd, "-addr", (onion && !Prefs.torAllowLan(this) ? "127.0.0.1:" : ":") + port,
+        // with internet access on, nothing but the phone itself reaches the
+        // server directly unless the user also opened the LAN entrance
+        add(cmd, "-addr", (Prefs.lanOpen(this) ? ":" : "127.0.0.1:") + port,
                 "-host-key", new File(getFilesDir(), "host_ed25519").getAbsolutePath(),
                 "-health-addr", "127.0.0.1:" + Prefs.healthPort(this),
                 "-relay-addr", "127.0.0.1:" + Prefs.relayPort(this),
@@ -162,13 +163,12 @@ public class VivantService extends Service {
             updateNotification();
             return;
         }
-        final String kind = tunnelKind;
         ServerState.tunnel = ServerState.TUNNEL_CONNECTING;
         try {
-            tunnel.start(Tunnels.command(this, kind), tunnelDir(), env(), new Child.Listener() {
+            tunnel.start(Tunnels.command(this), tunnelDir(), env(), new Child.Listener() {
                 @Override
                 public void onLine(String line) {
-                    String shown = Tunnels.onLine(kind, line);
+                    String shown = Tunnels.onLine(line);
                     if (shown != null) ServerState.log(shown);
                     if (ServerState.tunnel == ServerState.TUNNEL_UP) tunnelFails = 0;
                 }

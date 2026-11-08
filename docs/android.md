@@ -27,20 +27,20 @@
 
 ## 外网访问（不暴露 IP）
 
-手机一般在运营商的大内网里，外面直接连不进来。在「外网访问」里选一种。**要保护身份，就用 Tor。**
+手机一般在运营商的大内网里，外面直接连不进来。在「外网访问」里选一种。**要保护匿名用户，就用 Tor。**
 
 | 方式 | 谁能看到 IP | 需要什么 | 别人怎么进 |
 | --- | --- | --- | --- |
-| **Tor 洋葱服务**（推荐） | **谁都看不到**：访客、这台手机、聊天服务器、中继都不知道彼此的 IP | 什么都不用准备 | 打开 Tor Browser 或 Orbot，`ssh guest@xxxx.onion` |
-| EasyTier（自己的中继） | 中继节点能看到所有人的 IP | 一台你自己控制的 EasyTier 节点 | 对方装 EasyTier，运行 App 里显示的命令 |
-| FRP（自己的服务器） | frps 能看到访客的 IP | 一台运行 frps 的 VPS | 直接 `ssh -p 外网端口 guest@服务器` |
+| **Tor 洋葱服务**（推荐） | **谁都看不到**：访客、这台手机、聊天服务器、Tor 中继都不知道访客的 IP，访客也不知道手机的 IP | 什么都不用准备 | 打开 Tor Browser 或 Orbot，`ssh guest@xxxx.onion` |
+| FRP（自己的服务器） | 只有 frps 能看到访客的 IP；手机和访客彼此看不到 | 一台运行 frps、你自己控制且不在中国的 VPS | 直接 `ssh -p 外网端口 guest@服务器` |
+
+开启任何一种外网访问后，聊天服务器**只监听手机本机（127.0.0.1）**，局域网入口默认关闭；需要时可以勾选「同时允许局域网 / 热点直连」。
 
 ### Tor 洋葱服务
 
 点「启动」后，手机内置的 Tor（和 Orbot 同一个版本）会连上 Tor 网络，并发布一个 `.onion` 地址，显示在「怎么进入」里。这个地址会一直保留，可以长期发给别人；停止后点「换一个新 .onion 地址」可以作废旧地址。
 
 - **在中国等封锁 Tor 的地方：** 选「Snowflake 网桥」。Snowflake 是 Tor Browser 内置的网桥，伪装成普通的视频通话流量。如果 Snowflake 也连不上，去 [bridges.torproject.org](https://bridges.torproject.org)（或 Telegram 上的 @GetBridgesBot）拿 obfs4 / webtunnel 网桥，选「自定义网桥」粘贴进去，一行一个。
-- **局域网入口默认关闭：** 选 Tor 时，聊天服务器只监听手机本机，周围的人也只能通过 Tor 进来，不会暴露局域网地址。需要的话可以勾选「同时允许局域网 / 热点直连」。
 - 手机上的 Tor 不开 SOCKS 代理端口，其他 App 用不了它，也探测不到。
 - 状态行会显示「Tor：连接中 N%」→「正在发布洋葱地址」→「已上线 ✓」。第一次通常要 30 秒到几分钟，用网桥会更久。
 
@@ -59,22 +59,34 @@ torsocks ssh guest@xxxx.onion
 
 `.onion` 地址本身就是服务器身份的证明，不需要另外核对主机指纹。
 
-### EasyTier（自己的中继）
-
-为了不暴露 IP，App 里的 EasyTier **关闭了点对点直连和打洞**，也**没有默认的公共中继**：手机和访客只连你填写的中继节点，彼此看不到 IP。但中继节点本身能看到双方的 IP，所以只用你自己控制、且不在中国的节点（例如在海外 VPS 上运行 `easytier-core --network-name 任意 --network-secret 任意 -l tcp://0.0.0.0:11010`）。访客运行的命令类似：
-
-```
-easytier-core --no-tun -d --no-listener --disable-p2p --network-name vivant-xxxx --network-secret xxxx -p tcp://你的VPS:11010 --port-forward tcp://127.0.0.1:2222/10.144.144.1:2224
-ssh -p 2222 guest@127.0.0.1
-```
-
 ### FRP（自己的服务器）
 
-在 VPS 上装好 frps（`bindPort`，可选 `auth.token`），在 App 里填服务器地址、端口、令牌和外网端口，并在 VPS 防火墙放行外网端口。访客什么都不用装，但 **frps 能看到每个访客的 IP**。
+在 VPS 上装好 frps（`bindPort`，可选 `auth.token`），在 App 里填服务器地址、端口、令牌和外网端口，并在 VPS 防火墙放行外网端口。访客什么都不用装，但 **frps 能看到每个访客的 IP**，所以只适合你完全信任那台服务器的场合。App 永远不开启 frp 的 Proxy Protocol，所以访客的 IP 只停留在 frps，不会传到手机上。
+
+### 为什么没有 EasyTier
+
+早先的版本集成过 EasyTier，已经移除：EasyTier 的节点会把自己通过 STUN 探测到的公网 IP 和网卡地址同步给同一网络里的所有节点（路由信息和 `GetIpList` 接口），即使关掉点对点也一样。也就是说访客能拿到手机的 IP，访客之间也能互相拿到 IP，和「匿名用户 IP 不暴露」的目标冲突。
 
 ### 限额
 
-经 Tor / 穿透进来的连接在服务器看来都来自本机，所以它们走单独的本地入口（Tor 用 `-onion-addr`，EasyTier / FRP 用 `-relay-addr`），共用一组宽松限额（同时 300 人、每分钟 120 个新连接），而不是挤在一个地址的小限额里。
+经 Tor / FRP 进来的连接在服务器看来都来自本机，所以它们走单独的本地入口（Tor 用 `-onion-addr`，FRP 用 `-relay-addr`），共用一组宽松限额（同时 300 人、每分钟 120 个新连接），而不是挤在一个地址的小限额里。
+
+## 访客 IP 不暴露：各层怎么保证
+
+| 层 | 做法 |
+| --- | --- |
+| 进入手机的连接 | Tor / FRP 模式下，所有访客连接在手机上都显示为 `127.0.0.1`，聊天服务器从系统层面就拿不到访客 IP；局域网入口默认关闭 |
+| 聊天服务器 | 不记录、不显示任何地址：日志里只有自己的监听地址，`/who` 等命令只显示昵称；限流用的是每次启动随机加盐的地址哈希，只在内存里 |
+| Tor | 手机不开 SOCKS / HTTP 代理端口（其他 App 用不了、也探测不到）；`SafeLogging 1`，日志不进系统 logcat |
+| FRP | 不开 Proxy Protocol；frpc 本来就不知道访客 IP |
+| App | 不调用 Android 日志（logcat），不写日志文件；「日志」只是内存里最近 400 行，停止或退出就没了；聊天记录只在内存里 |
+
+自己验证（手机连电脑，开 USB 调试）：
+
+```bash
+adb logcat | grep -iE "vivant|tor"            # 有访客连入时，不应出现任何访客地址
+adb shell netstat -tn | grep -E ":2222|:2225"  # Tor 模式下只应看到 127.0.0.1 的监听和连接
+```
 
 ## 网络说明
 
@@ -86,7 +98,7 @@ ssh -p 2222 guest@127.0.0.1
 
 | 设置 | 说明 |
 | --- | --- |
-| 端口 | 默认 2222。`端口 + 1`（状态接口）、`端口 + 2`（穿透入口）、`端口 + 3`（Tor 入口）也会被占用，都只监听 127.0.0.1。 |
+| 端口 | 默认 2222。`端口 + 1`（状态接口）、`端口 + 2`（FRP 入口）、`端口 + 3`（Tor 入口）也会被占用，都只监听 127.0.0.1。 |
 | 最多同时在线 | 默认 100，手机性能足够撑起几百人，但电量和发热会上升。 |
 | 公共房间 | 同服务器的 `-rooms`，例如 `lobby:大厅,tech:技术`；留空用默认房间。 |
 | 额外参数 | 直接传给服务器的命令行参数，例如 `-history-ttl 24h -msg-rate 2`，全部参数见[部署与配置](deploy.md)。 |
@@ -99,17 +111,16 @@ ssh -p 2222 guest@127.0.0.1
 
 ## 自己构建
 
-需要 Rust、Android NDK（r25+）、JDK 24+、Gradle 9.8+ 或 Android Studio；穿透工具另需 Go、protoc、cmake：
+需要 Rust、Android NDK（r25+）、JDK 24+、Gradle 9.8+ 或 Android Studio；frpc 另需 Go：
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 export ANDROID_NDK_HOME=/path/to/ndk
 android/build-native.sh               # VIVANT 服务器 → jniLibs/*/libvivant.so
-android/build-tunnels.sh easytier     # EasyTier → jniLibs/*/libeasytier.so
 android/build-tunnels.sh frpc         # frpc → jniLibs/*/libfrpc.so
 gradle -p android assembleRelease     # → android/app/build/outputs/apk/release/
 ```
 
-EasyTier 和 frp 都从官方源码按 `android/tunnels.env` 里固定的版本编译；Tor 和网桥用 Guardian Project（Orbot 的开发者）发布的 `tor-android` 和 IPtProxy，和 Orbot 完全相同。三个程序都以 `lib*.so` 的名字打进 APK（其实是普通可执行文件），这样安卓会把它们解压到 App 的原生库目录——App 唯一允许执行程序的地方；前台服务用子进程启动它们。
+frpc 从官方源码按 `android/tunnels.env` 里固定的版本编译；Tor 和网桥用 Guardian Project（Orbot 的开发者）发布的 `tor-android` 和 IPtProxy，和 Orbot 完全相同。VIVANT 服务器和 frpc 以 `lib*.so` 的名字打进 APK（其实是普通可执行文件），这样安卓会把它们解压到 App 的原生库目录——App 唯一允许执行程序的地方；前台服务用子进程启动它们。Tor 在 App 进程里运行。
 
 **签名：** 不设置时用调试密钥签名，每次 CI 构建的密钥不同，升级前要先卸载旧版。想要稳定签名，在仓库 Secrets 里添加 `ANDROID_KEYSTORE_BASE64`（`.jks` 文件的 base64）、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`（可选 `ANDROID_KEY_PASSWORD`）。本地构建用环境变量 `VIVANT_KEYSTORE`、`VIVANT_KEYSTORE_PASSWORD`、`VIVANT_KEY_ALIAS`、`VIVANT_KEY_PASSWORD`。

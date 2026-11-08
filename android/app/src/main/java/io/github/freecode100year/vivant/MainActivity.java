@@ -44,13 +44,13 @@ import java.util.Set;
 public class MainActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private TextView status, online, tunnelStatus, error, connect, netHint, netConnect, fingerprint, log, advToggle, logToggle;
-    private Button toggle, battery, etNew, torNew;
-    private EditText port, maxClients, rooms, extra, etPeer, etName, etSecret, frpServer, frpServerPort, frpToken, frpRemotePort;
-    private CheckBox autostart, torAllowLan;
+    private Button toggle, battery, torNew;
+    private EditText port, maxClients, rooms, extra, frpServer, frpServerPort, frpToken, frpRemotePort;
+    private CheckBox autostart, allowLan;
     private RadioGroup tunnel, torBridges;
     private EditText torCustom;
     private TextView lanHint;
-    private View torGroup, etGroup, frpGroup, advGroup;
+    private View torGroup, frpGroup, advGroup;
     private ScrollView logScroll;
     private long shownLog = -1;
     private int tick;
@@ -82,25 +82,20 @@ public class MainActivity extends Activity {
         logToggle = findViewById(R.id.log_toggle);
         toggle = findViewById(R.id.toggle);
         battery = findViewById(R.id.battery);
-        etNew = findViewById(R.id.et_new);
         port = findViewById(R.id.port);
         maxClients = findViewById(R.id.max_clients);
         rooms = findViewById(R.id.rooms);
         extra = findViewById(R.id.extra);
-        etPeer = findViewById(R.id.et_peer);
-        etName = findViewById(R.id.et_name);
-        etSecret = findViewById(R.id.et_secret);
         frpServer = findViewById(R.id.frp_server);
         frpServerPort = findViewById(R.id.frp_server_port);
         frpToken = findViewById(R.id.frp_token);
         frpRemotePort = findViewById(R.id.frp_remote_port);
         autostart = findViewById(R.id.autostart);
         tunnel = findViewById(R.id.tunnel);
-        etGroup = findViewById(R.id.et_group);
         torGroup = findViewById(R.id.tor_group);
         torBridges = findViewById(R.id.tor_bridges);
         torCustom = findViewById(R.id.tor_custom_bridges);
-        torAllowLan = findViewById(R.id.tor_allow_lan);
+        allowLan = findViewById(R.id.allow_lan);
         torNew = findViewById(R.id.tor_new);
         lanHint = findViewById(R.id.lan_hint);
         frpGroup = findViewById(R.id.frp_group);
@@ -127,19 +122,13 @@ public class MainActivity extends Activity {
             tick = 0;
             render();
         });
-        torAllowLan.setOnCheckedChangeListener((v, on) -> {
-            Prefs.sp(this).edit().putBoolean("tor_allow_lan", on).apply();
+        allowLan.setOnCheckedChangeListener((v, on) -> {
+            Prefs.sp(this).edit().putBoolean("allow_lan", on).apply();
             tick = 0;
         });
         toggle.setOnClickListener(v -> {
             if (ServerState.running || Prefs.running(this)) stopServer();
             else startServer();
-        });
-        etNew.setOnClickListener(v -> {
-            Prefs.regenerateEasyTier(this);
-            etName.setText(Prefs.etName(this));
-            etSecret.setText(Prefs.etSecret(this));
-            tick = 0;
         });
         findViewById(R.id.copy).setOnClickListener(v -> {
             String text = connect.getVisibility() == View.VISIBLE ? connect.getText().toString() : "";
@@ -173,28 +162,23 @@ public class MainActivity extends Activity {
         maxClients.setText(String.valueOf(Prefs.maxClients(this)));
         rooms.setText(Prefs.rooms(this));
         extra.setText(Prefs.extraArgs(this));
-        etPeer.setText(Prefs.sp(this).getString("et_peer", ""));
         autostart.setChecked(Prefs.autostart(this));
-        etName.setText(Prefs.etName(this));
-        etSecret.setText(Prefs.etSecret(this));
         frpServer.setText(Prefs.frpServer(this));
         frpServerPort.setText(String.valueOf(Prefs.frpServerPort(this)));
         frpToken.setText(Prefs.frpToken(this));
         frpRemotePort.setText(String.valueOf(Prefs.frpRemotePort(this)));
         torCustom.setText(Prefs.torCustomBridges(this));
-        torAllowLan.setChecked(Prefs.torAllowLan(this));
+        allowLan.setChecked(Prefs.allowLan(this));
         String bm = Prefs.torBridges(this);
         torBridges.check(TorOnion.BRIDGES_SNOWFLAKE.equals(bm) ? R.id.bridges_snowflake : TorOnion.BRIDGES_CUSTOM.equals(bm) ? R.id.bridges_custom : R.id.bridges_none);
         String t = Prefs.tunnel(this);
-        tunnel.check(Prefs.TUNNEL_TOR.equals(t) ? R.id.tunnel_tor : Prefs.TUNNEL_EASYTIER.equals(t) ? R.id.tunnel_et
-                : Prefs.TUNNEL_FRP.equals(t) ? R.id.tunnel_frp : R.id.tunnel_off);
+        tunnel.check(Prefs.TUNNEL_TOR.equals(t) ? R.id.tunnel_tor : Prefs.TUNNEL_FRP.equals(t) ? R.id.tunnel_frp : R.id.tunnel_off);
         showTunnelGroups();
     }
 
     private String tunnelFromRadio() {
         int id = tunnel.getCheckedRadioButtonId();
         if (id == R.id.tunnel_tor) return Prefs.TUNNEL_TOR;
-        if (id == R.id.tunnel_et) return Prefs.TUNNEL_EASYTIER;
         if (id == R.id.tunnel_frp) return Prefs.TUNNEL_FRP;
         return Prefs.TUNNEL_OFF;
     }
@@ -210,7 +194,7 @@ public class MainActivity extends Activity {
         String t = tunnelFromRadio();
         torGroup.setVisibility(Prefs.TUNNEL_TOR.equals(t) ? View.VISIBLE : View.GONE);
         torCustom.setVisibility(TorOnion.BRIDGES_CUSTOM.equals(bridgesFromRadio()) ? View.VISIBLE : View.GONE);
-        etGroup.setVisibility(Prefs.TUNNEL_EASYTIER.equals(t) ? View.VISIBLE : View.GONE);
+        allowLan.setVisibility(Prefs.TUNNEL_OFF.equals(t) ? View.GONE : View.VISIBLE);
         frpGroup.setVisibility(Prefs.TUNNEL_FRP.equals(t) ? View.VISIBLE : View.GONE);
     }
 
@@ -258,25 +242,10 @@ public class MainActivity extends Activity {
         }
         if (!ok && advGroup.getVisibility() != View.VISIBLE) fold(advGroup, advToggle, R.string.adv_title, R.string.adv_title_open);
         String t = tunnelFromRadio();
-        String name = etName.getText().toString().trim(), secret = etSecret.getText().toString().trim();
         String bridges = torCustom.getText().toString().trim();
         if (Prefs.TUNNEL_TOR.equals(t) && TorOnion.BRIDGES_CUSTOM.equals(bridgesFromRadio()) && TorOnion.parseBridges(bridges).isEmpty()) {
             torCustom.setError(getString(R.string.err_need));
             ok = false;
-        }
-        if (Prefs.TUNNEL_EASYTIER.equals(t)) {
-            if (etPeer.getText().toString().trim().isEmpty()) {
-                etPeer.setError(getString(R.string.err_need));
-                ok = false;
-            }
-            if (name.isEmpty()) {
-                etName.setError(getString(R.string.err_need));
-                ok = false;
-            }
-            if (secret.isEmpty()) {
-                etSecret.setError(getString(R.string.err_need));
-                ok = false;
-            }
         }
         int fsp = parse(frpServerPort), frp = parse(frpRemotePort);
         String server = frpServer.getText().toString().trim();
@@ -300,14 +269,11 @@ public class MainActivity extends Activity {
                 .putInt("max_clients", m)
                 .putString("rooms", rooms.getText().toString().trim())
                 .putString("extra_args", extra.getText().toString().trim())
-                .putString("et_peer", etPeer.getText().toString().trim())
                 .putBoolean("autostart", autostart.isChecked())
                 .putString("tunnel", t)
                 .putString("tor_bridges", bridgesFromRadio())
                 .putString("tor_custom_bridges", bridges)
-                .putBoolean("tor_allow_lan", torAllowLan.isChecked())
-                .putString("et_name", name)
-                .putString("et_secret", secret)
+                .putBoolean("allow_lan", allowLan.isChecked())
                 .putString("frp_server", server)
                 .putInt("frp_server_port", fsp > 0 ? fsp : 7000)
                 .putString("frp_token", frpToken.getText().toString())
@@ -370,15 +336,15 @@ public class MainActivity extends Activity {
         error.setVisibility(err == null ? View.GONE : View.VISIBLE);
 
         boolean editable = !run && !wanted;
-        for (View v : new View[]{port, maxClients, rooms, extra, etPeer, etName, etSecret, etNew,
-                frpServer, frpServerPort, frpToken, frpRemotePort, torCustom, torAllowLan, torNew,
+        for (View v : new View[]{port, maxClients, rooms, extra,
+                frpServer, frpServerPort, frpToken, frpRemotePort, torCustom, allowLan, torNew,
                 findViewById(R.id.bridges_none), findViewById(R.id.bridges_snowflake), findViewById(R.id.bridges_custom),
-                findViewById(R.id.tunnel_off), findViewById(R.id.tunnel_tor), findViewById(R.id.tunnel_et), findViewById(R.id.tunnel_frp)}) {
+                findViewById(R.id.tunnel_off), findViewById(R.id.tunnel_tor), findViewById(R.id.tunnel_frp)}) {
             v.setEnabled(editable);
         }
 
         if (tick++ % 5 == 0) {
-            boolean lanClosed = Prefs.TUNNEL_TOR.equals(tunnelFromRadio()) && !torAllowLan.isChecked();
+            boolean lanClosed = !Prefs.TUNNEL_OFF.equals(tunnelFromRadio()) && !allowLan.isChecked();
             lanHint.setText(lanClosed ? R.string.lan_closed : R.string.connect_lan);
             connect.setVisibility(lanClosed ? View.GONE : View.VISIBLE);
             connect.setText(lanText(Prefs.port(this)));
@@ -401,8 +367,6 @@ public class MainActivity extends Activity {
     /** What people outside the LAN type, for the chosen kind of internet access. */
     private void renderInternet() {
         String t = tunnelFromRadio();
-        int p = parse(port);
-        int relay = p >= 1024 ? p + 2 : Prefs.relayPort(this);
         String cmd = null, hint = null;
         if (Prefs.TUNNEL_TOR.equals(t)) {
             String onion = TorOnion.address(this);
@@ -413,15 +377,6 @@ public class MainActivity extends Activity {
                 cmd = "ssh -o ProxyCommand='nc -x 127.0.0.1:9150 %h %p' guest@" + onion
                         + "\n\ntorsocks ssh guest@" + onion;
             }
-        } else if (Prefs.TUNNEL_EASYTIER.equals(t)) {
-            String peer = etPeer.getText().toString().trim();
-            peer = peer.isEmpty() ? "tcp://…:11010" : peer.split("[,\\s]+")[0];
-            cmd = "easytier-core --no-tun -d --no-listener --disable-p2p --network-name " + etName.getText().toString().trim()
-                    + " --network-secret " + etSecret.getText().toString().trim()
-                    + " -p " + peer
-                    + " --port-forward tcp://127.0.0.1:2222/" + Prefs.ET_IP + ":" + relay
-                    + "\n\nssh -p 2222 guest@127.0.0.1";
-            hint = getString(R.string.net_hint_et) + "\n" + getString(R.string.net_hint_et_app, relay, Prefs.ET_IP);
         } else if (Prefs.TUNNEL_FRP.equals(t)) {
             String server = frpServer.getText().toString().trim();
             int remote = parse(frpRemotePort);
@@ -469,7 +424,6 @@ public class MainActivity extends Activity {
         for (InetAddress a : all) {
             if (a.isLoopbackAddress() || a.isLinkLocalAddress() || a.isAnyLocalAddress()) continue;
             String h = a.getHostAddress();
-            if (Prefs.ET_IP.equals(h)) continue;
             if (a instanceof Inet4Address) {
                 v4.add(h);
             } else if (a instanceof Inet6Address) {

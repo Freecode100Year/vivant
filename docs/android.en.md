@@ -27,20 +27,20 @@ Stop with **Stop** or from the notification. Port, rooms, start-on-boot and the 
 
 ## Internet access (without exposing IPs)
 
-Phones usually sit behind carrier NAT, so nobody outside can connect directly. Pick one under **Internet access**. **To protect identities, use Tor.**
+Phones usually sit behind carrier NAT, so nobody outside can connect directly. Pick one under **Internet access**. **To protect anonymous users, use Tor.**
 
 | Mode | Who sees IP addresses | What you need | How others join |
 | --- | --- | --- | --- |
-| **Tor onion service** (recommended) | **Nobody**: visitors, this phone, the chat server and relays never learn each other's IP | nothing | open Tor Browser or Orbot, `ssh guest@xxxx.onion` |
-| EasyTier (your own relay) | the relay node sees everyone's IP | an EasyTier node you control | they install EasyTier and run the line the app shows |
-| FRP (your own server) | frps sees visitors' IPs | a VPS running frps | `ssh -p PUBLIC_PORT guest@SERVER` |
+| **Tor onion service** (recommended) | **Nobody**: visitors, this phone, the chat server and Tor relays never learn a visitor's IP, and visitors never learn the phone's | nothing | open Tor Browser or Orbot, `ssh guest@xxxx.onion` |
+| FRP (your own server) | only frps sees visitors' IPs; the phone and visitors don't see each other's | a VPS running frps that you control, outside China | `ssh -p PUBLIC_PORT guest@SERVER` |
+
+With either mode on, the chat server **listens on the phone itself (127.0.0.1) only** and the LAN entrance is closed; tick **Also allow LAN / hotspot** if you want it.
 
 ### Tor onion service
 
 After **Start**, the built-in Tor (the same build Orbot uses) connects to the Tor network and publishes a `.onion` address, shown under **How to join**. The address stays the same, so it can be shared long-term; stop and tap **New .onion address** to retire it.
 
 - **In China and other places that block Tor:** choose **Snowflake bridge** — Tor Browser's built-in bridge, disguised as ordinary video-call traffic. If Snowflake doesn't get through either, get obfs4 / webtunnel bridges from [bridges.torproject.org](https://bridges.torproject.org) (or @GetBridgesBot on Telegram) and paste them under **Custom bridges**, one per line.
-- **LAN entrance off by default:** with Tor, the chat server only listens on the phone itself, so even people nearby come in through Tor and no local address is revealed. Tick **Also allow LAN / hotspot** if you want direct local access too.
 - The phone's Tor opens no SOCKS port: other apps can neither use nor probe it.
 - The status line goes "Tor: connecting N%" → "publishing the onion address" → "online ✓". The first time takes 30 seconds to a few minutes; longer with bridges.
 
@@ -59,22 +59,34 @@ Android visitors: Orbot plus Termux (`torsocks ssh guest@xxxx.onion`), or Orbot'
 
 The `.onion` address itself proves the server's identity; there's no host key fingerprint to check.
 
-### EasyTier (your own relay)
-
-To keep IPs hidden, the app's EasyTier mode **turns off P2P and hole punching** and has **no public relay by default**: the phone and visitors connect only to the relay you enter and never see each other's IP. The relay itself does see both sides' IPs, so only use a node you control, outside China (e.g. on a VPS abroad: `easytier-core --network-name any --network-secret any -l tcp://0.0.0.0:11010`). Visitors run something like:
-
-```
-easytier-core --no-tun -d --no-listener --disable-p2p --network-name vivant-xxxx --network-secret xxxx -p tcp://YOUR_VPS:11010 --port-forward tcp://127.0.0.1:2222/10.144.144.1:2224
-ssh -p 2222 guest@127.0.0.1
-```
-
 ### FRP (your own server)
 
-Run frps on a VPS (`bindPort`, optional `auth.token`), fill in server, port, token and public port in the app, and open the public port in the VPS firewall. Visitors install nothing, but **frps sees every visitor's IP**.
+Run frps on a VPS (`bindPort`, optional `auth.token`), fill in server, port, token and public port in the app, and open the public port in the VPS firewall. Visitors install nothing, but **frps sees every visitor's IP**, so only use it where you fully trust that server. The app never turns on frp's Proxy Protocol, so visitors' IPs stay on frps and never reach the phone.
+
+### Why there is no EasyTier
+
+An earlier version bundled EasyTier; it was removed. EasyTier nodes share their STUN-detected public IPs and interface addresses with every node in the network (route info and the `GetIpList` RPC), even with P2P off — so visitors could learn the phone's IP and each other's, which defeats the goal of keeping anonymous users' IPs hidden.
 
 ### Limits
 
-Everyone arriving through Tor or a tunnel looks like the phone itself to the server, so they come in through separate local entrances (`-onion-addr` for Tor, `-relay-addr` for EasyTier / FRP) and share generous limits (300 at once, 120 new connections a minute) instead of one address's small quota.
+Everyone arriving through Tor or FRP looks like the phone itself to the server, so they come in through separate local entrances (`-onion-addr` for Tor, `-relay-addr` for FRP) and share generous limits (300 at once, 120 new connections a minute) instead of one address's small quota.
+
+## Visitors' IPs stay hidden: layer by layer
+
+| Layer | How |
+| --- | --- |
+| Connections into the phone | with Tor / FRP every visitor appears as `127.0.0.1`, so the chat server can't get a visitor's IP even from the OS; LAN entrance closed by default |
+| Chat server | records and shows no addresses: the log holds only its own listen addresses, `/who` and friends show nicknames only; rate limits use an address hash salted afresh on every start, in memory only |
+| Tor | no SOCKS / HTTP proxy port (other apps can neither use nor probe it); `SafeLogging 1`, nothing in the system log (logcat) |
+| FRP | no Proxy Protocol; frpc never knows visitors' IPs in the first place |
+| App | never writes to Android's log (logcat) or log files; "Log" is the last 400 lines in memory, gone on stop or exit; chat is in memory only |
+
+Check it yourself (phone on USB debugging):
+
+```bash
+adb logcat | grep -iE "vivant|tor"            # no visitor address should appear while people connect
+adb shell netstat -tn | grep -E ":2222|:2225"  # in Tor mode, only 127.0.0.1 listeners and connections
+```
 
 ## Networking
 
@@ -86,7 +98,7 @@ Everyone arriving through Tor or a tunnel looks like the phone itself to the ser
 
 | Setting | Meaning |
 | --- | --- |
-| Port | Default 2222. `port + 1` (status), `port + 2` (tunnel entrance) and `port + 3` (Tor entrance) are used too, all 127.0.0.1 only. |
+| Port | Default 2222. `port + 1` (status), `port + 2` (FRP entrance) and `port + 3` (Tor entrance) are used too, all 127.0.0.1 only. |
 | Max online users | Default 100. A phone can carry a few hundred, at the cost of battery and heat. |
 | Public rooms | The server's `-rooms`, e.g. `lobby:Lobby,tech:Tech`; empty = default rooms. |
 | Extra flags | Passed straight to the server, e.g. `-history-ttl 24h -msg-rate 2`; all flags in [Deployment and configuration](deploy.en.md). |
@@ -99,17 +111,16 @@ Same as on a VPS: no accounts, no IPs / nicknames / messages in the log, chat ke
 
 ## Build it yourself
 
-Needs Rust, the Android NDK (r25+), JDK 24+, and Gradle 9.8+ or Android Studio; the tunnel tools also need Go, protoc and cmake:
+Needs Rust, the Android NDK (r25+), JDK 24+, and Gradle 9.8+ or Android Studio; frpc also needs Go:
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 export ANDROID_NDK_HOME=/path/to/ndk
 android/build-native.sh               # VIVANT server -> jniLibs/*/libvivant.so
-android/build-tunnels.sh easytier     # EasyTier -> jniLibs/*/libeasytier.so
 android/build-tunnels.sh frpc         # frpc -> jniLibs/*/libfrpc.so
 gradle -p android assembleRelease     # -> android/app/build/outputs/apk/release/
 ```
 
-EasyTier and frp are built from their official sources at the versions pinned in `android/tunnels.env`; Tor and the bridges are Guardian Project's (Orbot's developers) `tor-android` and IPtProxy, exactly as in Orbot. All three programs are packed as `lib*.so` (really plain executables) so Android extracts them to the app's native library directory — the only place an app may execute programs from; a foreground service runs them as child processes.
+frpc is built from its official source at the version pinned in `android/tunnels.env`; Tor and the bridges are Guardian Project's (Orbot's developers) `tor-android` and IPtProxy, exactly as in Orbot. The VIVANT server and frpc are packed as `lib*.so` (really plain executables) so Android extracts them to the app's native library directory — the only place an app may execute programs from; a foreground service runs them as child processes. Tor runs inside the app process.
 
 **Signing:** without configuration the APK is debug-signed, with a different key on every CI run, so uninstall the old one before updating. For stable signing add the repository secrets `ANDROID_KEYSTORE_BASE64` (base64 of a `.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (optionally `ANDROID_KEY_PASSWORD`). Locally use `VIVANT_KEYSTORE`, `VIVANT_KEYSTORE_PASSWORD`, `VIVANT_KEY_ALIAS`, `VIVANT_KEY_PASSWORD`.

@@ -93,7 +93,11 @@ final class TorOnion {
                 "HiddenServiceDir " + hs.getAbsolutePath(),
                 "HiddenServicePort " + ONION_PORT + " 127.0.0.1:" + localPort,
                 "HiddenServiceMaxStreams 600",
-                "HiddenServiceMaxStreamsCloseCircuit 1"));
+                "HiddenServiceMaxStreamsCloseCircuit 1",
+                // scrub addresses from anything tor logs, and log to stdout
+                // (nothing on Android) instead of the system log (logcat)
+                "SafeLogging 1",
+                "Log notice stdout"));
         rc.addAll(bridgeConfig());
         Files.write(TorService.getTorrc(ctx).toPath(), (String.join("\n", rc) + "\n").getBytes(StandardCharsets.UTF_8));
 

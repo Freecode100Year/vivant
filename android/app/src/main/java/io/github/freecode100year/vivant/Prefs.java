@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import java.security.SecureRandom;
-import java.util.UUID;
 
 /** User settings, kept in the app's private SharedPreferences. */
 final class Prefs {
@@ -12,12 +11,8 @@ final class Prefs {
     static final int DEFAULT_MAX_CLIENTS = 100;
 
     static final String TUNNEL_OFF = "off";
-    static final String TUNNEL_EASYTIER = "easytier";
     static final String TUNNEL_FRP = "frp";
     static final String TUNNEL_TOR = "tor";
-
-    /** This phone's address inside the EasyTier network. */
-    static final String ET_IP = "10.144.144.1";
 
     private Prefs() {}
 
@@ -42,33 +37,24 @@ final class Prefs {
     static void setRunning(Context c, boolean on) { sp(c).edit().putBoolean("running", on).apply(); }
 
     // internet access
-    static String tunnel(Context c) { return sp(c).getString("tunnel", TUNNEL_OFF); }
-    static String etName(Context c) { return generated(c, "et_name", "vivant-", 10); }
-    static String etSecret(Context c) { return generated(c, "et_secret", "", 16); }
-    /** Relay node(s) — the user's own; there is deliberately no public default (it would see everyone's IP). */
-    static String etPeer(Context c) { return sp(c).getString("et_peer", "").trim(); }
+    static String tunnel(Context c) {
+        String t = sp(c).getString("tunnel", TUNNEL_OFF);
+        return TUNNEL_TOR.equals(t) || TUNNEL_FRP.equals(t) ? t : TUNNEL_OFF; // EasyTier was removed
+    }
     static String torBridges(Context c) { return sp(c).getString("tor_bridges", TorOnion.BRIDGES_NONE); }
     static String torCustomBridges(Context c) { return sp(c).getString("tor_custom_bridges", ""); }
-    /** With Tor on: also accept direct LAN / hotspot connections (those reveal local addresses). */
-    static boolean torAllowLan(Context c) { return sp(c).getBoolean("tor_allow_lan", false); }
-    static String etMachineId(Context c) {
-        String id = sp(c).getString("et_machine_id", null);
-        if (id == null) {
-            id = UUID.randomUUID().toString();
-            sp(c).edit().putString("et_machine_id", id).apply();
-        }
-        return id;
-    }
+    /**
+     * With internet access on, the chat server listens on 127.0.0.1 only unless
+     * the user also wants direct LAN / hotspot connections (which reveal local
+     * addresses to the phone and to each other).
+     */
+    static boolean allowLan(Context c) { return sp(c).getBoolean("allow_lan", false); }
+    static boolean lanOpen(Context c) { return TUNNEL_OFF.equals(tunnel(c)) || allowLan(c); }
     static String frpServer(Context c) { return sp(c).getString("frp_server", "").trim(); }
     static int frpServerPort(Context c) { return sp(c).getInt("frp_server_port", 7000); }
     static String frpToken(Context c) { return sp(c).getString("frp_token", ""); }
     static int frpRemotePort(Context c) { return sp(c).getInt("frp_remote_port", DEFAULT_PORT); }
     static String frpProxyName(Context c) { return generated(c, "frp_name", "vivant-", 6); }
-
-    /** A new random EasyTier network name and password. */
-    static void regenerateEasyTier(Context c) {
-        sp(c).edit().putString("et_name", "vivant-" + random(10)).putString("et_secret", random(16)).apply();
-    }
 
     private static String generated(Context c, String key, String prefix, int n) {
         String v = sp(c).getString(key, null);

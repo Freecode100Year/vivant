@@ -95,7 +95,7 @@ Improvements chosen after studying similar projects (ssh-chat, devzat, SoftRoom,
 
 ## Documentation
 
-- [Android phone as a server](docs/android.en.md): installing the APK, hotspot / LAN connections, building it
+- [Android phone as a server](docs/android.en.md): installing the APK, Tor onion service (no exposed IPs), hotspot / LAN, building it
 - [Connecting and using](docs/usage.en.md): every platform, iPhone step by step, all commands, Tor
 - [AI agents](docs/agents.en.md): `bot@` JSON mode, example program
 - [Security and anonymity](docs/security.en.md): what the operator can see and what can't be promised

@@ -98,7 +98,7 @@ curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install
 - [连接与使用](docs/usage.md)：各平台连接方法、iPhone 详细步骤、全部命令、Tor
 - [AI 智能体接入](docs/agents.md)：`bot@` JSON 模式、示例程序
 - [安全与匿名性](docs/security.md)：部署者能看到什么、不能保证什么
-- [安卓手机当服务器](docs/android.md)：APK 安装、热点 / 局域网连接、自己构建
+- [安卓手机当服务器](docs/android.md)：APK 安装、Tor 洋葱服务（不暴露 IP）、热点 / 局域网、自己构建
 - [部署与配置](docs/deploy.md)：一键安装参数、迁移、管理员、配置项、Docker
 - [性能](docs/performance.md)：压测数据和设计
 - [开发](docs/development.md)：构建、测试、发布、代码结构、路线图
