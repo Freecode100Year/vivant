@@ -16,7 +16,7 @@ To release: change the `VERSION` file (e.g. `1.0.1`) and push to main, or push a
 
 ```
 src/main.rs                 flags, health endpoint, graceful shutdown
-src/flags.rs                flag parsing with Go's flag syntax (-addr :2222, -idle-timeout 1h)
+src/flags.rs                flag parsing with Go's flag syntax (-addr :2222, -idle-timeout 30m)
 install.sh                  one-line install / upgrade / uninstall (also vivant-ctl)
 src/chat/                   rooms, identities, private messages, history, rate limits, bans, reports (no SSH)
 src/ui/term.rs              full interface: small terminal renderer

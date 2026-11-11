@@ -92,6 +92,7 @@ Improvements chosen after studying similar projects (ssh-chat, devzat, SoftRoom,
 - [x] **Hardening after a security review**: modern SSH algorithms only, invisible and tag characters stripped (with a fuzz test), global TCP cap, fresh ban key when no ban is active
 - [x] **Renamed to VIVANT**: old servers migrate by running the installer
 - [x] **Offline one-click install**: one self-extracting file, `--to root@SERVER` deploys straight from your computer; plus Windows / macOS binaries for testing and LANs
+- [x] **Nobody is kicked** (v0.11.5): quiet sessions and locked phones stay connected and are back in their room on unlock; a slot is freed only when the peer is really gone (about 15 minutes without a network). Upgrading removes the old "disconnect after 1 hour without posting" default
 
 ## Documentation
 

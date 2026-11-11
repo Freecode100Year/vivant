@@ -111,8 +111,8 @@ fn main() {
     fs.int("max-len", 500, "单条消息最大字数 · maximum message length in characters");
     fs.duration(
         "idle-timeout",
-        Duration::from_secs(3600),
-        "多久不发言就断开（0 = 不断开）· disconnect sessions silent for this long (0 = never)",
+        Duration::ZERO,
+        "多久不发言就断开（默认 0 = 不断开，挂机也不踢）· disconnect sessions silent for this long (default 0 = never)",
     );
     fs.duration(
         "bot-idle-timeout",

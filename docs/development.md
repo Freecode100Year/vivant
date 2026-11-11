@@ -16,7 +16,7 @@ make bench     # 压测
 
 ```
 src/main.rs                 参数、健康检查、优雅退出
-src/flags.rs                与 Go flag 包相同语法的参数解析（-addr :2222、-idle-timeout 1h）
+src/flags.rs                与 Go flag 包相同语法的参数解析（-addr :2222、-idle-timeout 30m）
 install.sh                  一键安装 / 升级 / 卸载（也是 vivant-ctl）
 src/chat/                   房间、身份、私聊、历史、限流、封禁、举报（与 SSH 无关）
 src/ui/term.rs              完整界面：轻量终端渲染器

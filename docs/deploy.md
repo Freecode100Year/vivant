@@ -167,7 +167,7 @@ sudo vivant-ctl status        # 输出里的 Host key: SHA256:…
 | `-max-clients` / `-max-per-ip` / `-max-tcp-per-ip` / `-conn-per-min` | 自动（`VIVANT_MAX_CLIENTS`）/ 3 / 8 / 10 | 连接限制；安装脚本按机器算出最多在线人数写进 `VIVANT_MAX_CLIENTS`，参考：512 MB → 900，1 GB → 2200，2 GB 2 核 → 4900，4 GB 2 核 → 5000，8 GB 4 核 → 10000 |
 | `-read-rate` | 32768 | 每个连接每秒最多发来多少字节，超出会被放慢而不是断开（突发 8 倍；0 = 不限）。正常打字和粘贴远远用不到 |
 | `-msg-rate` / `-msg-burst` / `-max-len` | 1/s / 5 / 500 | 发言限制 |
-| `-idle-timeout` | 1h | 不发言多久后断开（0 = 不断开） |
+| `-idle-timeout` | 0 | 不发言多久后断开（0 = 不断开；v0.11.5 起默认不断开） |
 | `-bot-idle-timeout` | 0 | bot 模式（常驻智能体）不发言多久后断开（0 = 不断开） |
 | `-nick-hold` | 10m | 断线后自选昵称为原地址保留多久 |
 
