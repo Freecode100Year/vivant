@@ -475,12 +475,19 @@ GOMEMLIMIT=$(mem_limit)
 # 其他参数 · Any other flags.
 # 聊天记录默认只在内存保留 24 小时、每房间 500 条（-history / -history-ttl 可改）。
 # Chat history: memory only, 24 hours, 500 per room by default (-history / -history-ttl).
-VIVANT_ARGS=-max-per-ip 3 -idle-timeout 1h
+VIVANT_ARGS=-max-per-ip 3
 EOF
 		chmod 0644 "$ENV_FILE"
 		ok "已创建 Created $ENV_FILE"
 	elif [ -n "$PORT" ]; then
 		set_env VIVANT_ADDR ":$PORT"
+	fi
+	# Upgrades: the old default of disconnecting people after 1 hour without
+	# posting is dropped (v0.11.5: nobody is kicked for being quiet or for a
+	# locked phone). A different value someone chose themselves is left alone.
+	if grep -q '^VIVANT_ARGS=.*-idle-timeout 1h\b' "$ENV_FILE" 2>/dev/null; then
+		sed -i '/^VIVANT_ARGS=/s/ *-idle-timeout 1h\b//' "$ENV_FILE"
+		ok "不再断开不发言的人 · Quiet sessions are no longer disconnected"
 	fi
 	# Upgrades: the old built-in 1-hour history setting gives way to the new
 	# 24-hour default. Values someone chose themselves are left alone.

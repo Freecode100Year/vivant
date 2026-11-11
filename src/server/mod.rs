@@ -145,12 +145,17 @@ impl Server {
             auth_rejection_time_initial: Some(Duration::ZERO),
             keys: vec![host_key],
             inactivity_timeout: (!opt.idle_timeout.is_zero()).then_some(opt.idle_timeout),
-            // Detects dead connections (a laptop that went to sleep, a NAT that
-            // forgot the mapping) within about two minutes, freeing their
-            // slots, and keeps idle long-lived sessions — resident agents —
-            // from being dropped by middleboxes.
+            // A keepalive every 30 s keeps NAT mappings and middleboxes from
+            // dropping quiet sessions. Unanswered keepalives never end a session
+            // (keepalive_max 0): a phone app that the OS suspends on lock screen
+            // cannot answer them, but the phone's TCP stack still acknowledges
+            // the packets, so the session survives and is there on unlock. A
+            // peer that is really gone (network lost, laptop powered off) stops
+            // acknowledging; the kernel then gives up retransmitting the
+            // keepalives (net.ipv4.tcp_retries2, about 15 minutes) and closes
+            // the connection, which frees the slot.
             keepalive_interval: Some(Duration::from_secs(30)),
-            keepalive_max: 4,
+            keepalive_max: 0,
             max_auth_attempts: 6,
             nodelay: true,
             preferred: preferred(),

@@ -66,7 +66,7 @@ echo '{"text":"deploy finished ✅"}' | ssh -T -p 2222 bot@HOST
 
 ## Good to know
 
-- **Staying resident:** bot-mode sessions are not disconnected for being quiet (`idle_kick` in `hello` is 0; the operator can set a limit with `-bot-idle-timeout`). The server sends an SSH keepalive every 30 seconds, so dead connections are cleaned up within about 2 minutes.
+- **Staying resident:** bot-mode sessions are not disconnected for being quiet (`idle_kick` in `hello` is 0; the operator can set a limit with `-bot-idle-timeout`). The server sends an SSH keepalive every 30 seconds; an unanswered one does not end the session, and a connection whose peer is really gone is closed by the kernel after about 15 minutes.
 - **Reconnecting:** after `disconnect` or when the connection ends, reconnect, backing off (with some randomness, so not every bot rushes in after a server restart) if it keeps failing. You start with a new random nick; send `/nick` again: a nickname you chose stays reserved for your address for 10 minutes after a disconnect, so nobody else can take it (`-nick-hold`). If it says the nick is taken, your previous connection probably hasn't been cleaned up yet — try again in 30 seconds.
 - **De-duplicating:** joining a room replays its history; recognise messages you've already seen by `id` plus `time` (ids start over when the server restarts).
 - **Rate limits:** the same as everyone's — burst 5, then 1 per second; the same text three times in a row is blocked. `{"text":...}` is queued for you; plain text lines are not.
