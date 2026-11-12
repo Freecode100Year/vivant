@@ -26,6 +26,8 @@ Enter 发送 send · ↑↓ 历史 history · PgUp/PgDn 滚动 scroll · Ctrl+C 
 
 ## 怎么连
 
+**网页入口**：打开 [https://chat.nya.je/](https://chat.nya.je/) 即可在浏览器中进入聊天室。
+
 **电脑**（Windows / macOS / Linux 自带 ssh）：运行上面那条命令。第一次连接会问是否信任服务器，输入 `yes`。
 
 **iPhone / iPad**：
@@ -73,26 +75,6 @@ curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install
 **从 Private-Talk Terminal 升级：** VIVANT 以前叫 Private-Talk Terminal（`ptterm`）。在旧服务器上运行一次上面的命令即可自动迁移，主机密钥、配置、封禁、洋葱地址都会保留，详见[部署与配置](docs/deploy.md#从-private-talk-terminal-迁移)。
 
 单核 1GB 的 VPS 大约能承载 2000 人同时在线。安装参数、管理员、配置项见[部署与配置](docs/deploy.md)。
-
-## 计划
-
-参考同类项目（ssh-chat、devzat、SoftRoom、sshoosh、SSHChat）后定下的改进，按顺序进行。原则：不增加新用户要学的东西，不削弱匿名。
-
-- [x] **色盲、视力差友好的配色**：默认护眼绿背景、黑色文字，`/theme` 可换黑、白；三种背景下所有文字对比度都达到 WCAG AAA（7:1 以上）；@你 的消息是橙色高亮条，`@昵称` 加下划线
-- [x] **被 @、收到私聊时响铃**：默认开启，`/bell off` 关闭（借鉴 devzat）
-- [x] **人多时折叠进出提示**：合并成“3 人进入、2 人离开”（借鉴 ssh-chat `/quiet`）
-- [x] **备用 443 端口**：安装时加 `--alt-port 443`，给被防火墙拦住的用户一条路（借鉴 devzat）
-- [x] **核对主机指纹、`ssh chat` 短命令**：写进文档，`vivant-ctl status` 显示指纹（借鉴 ssh-chat、devzat）
-- [x] **Tor 出口 IP 共用宽松限额**：避免误伤用 Tor 浏览器直连的人（反向借鉴 devzat，它拒绝 Tor 用户）
-- [x] **界面中英双语**：所有提示、`/help`、按键说明、安装脚本输出同时标注简体中文和英文
-- [x] **`vivant-ctl doctor` 自检**：逐项检查服务、端口、防火墙、域名解析、Cloudflare 灰云（借鉴 sshoosh）
-- [x] **可选加固**：连接层读取限速、Docker 镜像（借鉴 ssh-chat、sshoosh）
-- [x] **握手超时**：30 秒内没进入聊天的连接直接断开，扫描器占不住名额；443 等知名端口在安装和 `doctor` 时给出提醒
-- [x] **外部监控、口令设计原则**：写进文档（借鉴 devzat、ssh-chat、sshoosh）
-- [x] **安全审计后的加固**：只用现代 SSH 算法、剔除隐形字符和标签字符（附模糊测试）、TCP 总连接上限、没有生效封禁时自动换封禁密钥
-- [x] **改名 VIVANT**：旧服务器运行一键安装命令自动迁移
-- [x] **离线一键安装**：一个自解压文件，`--to root@服务器` 从自己电脑直接部署；另附 Windows / macOS 程序供测试和局域网使用
-- [x] **不踢人下线**（v0.11.5）：不发言挂机、手机锁屏都不会被断开，解锁后还在原来的房间；只有对方真正掉线（网络消失约 15 分钟）才释放名额。旧服务器升级时自动去掉原来"1 小时不发言断开"的默认设置
 
 ## 文档
 

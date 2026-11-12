@@ -26,6 +26,8 @@ Every prompt, the help and the key hints are shown in both Simplified Chinese an
 
 ## How to connect
 
+**Web:** open [https://chat.nya.je/](https://chat.nya.je/) to join the chat in your browser.
+
 **Computer** (Windows, macOS and Linux all ship ssh): run the command above. On first connect SSH asks whether to trust the server; type `yes`.
 
 **iPhone / iPad**:
@@ -73,26 +75,6 @@ Manage it with `sudo vivant-ctl status | upgrade | uninstall`. If people can't c
 **Upgrading from Private-Talk Terminal:** VIVANT used to be called Private-Talk Terminal (`ptterm`). Run the command above once on the old server and it migrates automatically, keeping the host key, configuration, bans and onion address. See [Deployment and configuration](docs/deploy.en.md#migrating-from-private-talk-terminal).
 
 A 1-core, 1 GB VPS handles about 2000 people online at once. Installer options, admins and settings: [Deployment and configuration](docs/deploy.en.md).
-
-## Plan
-
-Improvements chosen after studying similar projects (ssh-chat, devzat, SoftRoom, sshoosh, SSHChat), done in order. Rule: nothing new for newcomers to learn, nothing that weakens anonymity.
-
-- [x] **Colour-blind and low-vision friendly colours**: black text on eye-care green by default, `/theme` switches to black or white; every colour meets WCAG AAA (7:1+) on all three; messages mentioning you are an orange band, `@nick` is underlined
-- [x] **Bell on mentions and private messages**: on by default, `/bell off` to disable (from devzat)
-- [x] **Collapse join/leave lines in busy rooms**: "3 joined, 2 left" (from ssh-chat `/quiet`)
-- [x] **Alternate port 443**: `--alt-port 443` at install, for users behind strict firewalls (from devzat)
-- [x] **Host fingerprint check, `ssh chat` shortcut**: documented; `vivant-ctl status` prints the fingerprint (from ssh-chat, devzat)
-- [x] **Tor exits share the generous Tor limits**: Tor Browser users aren't capped per address (the reverse of devzat, which blocks Tor)
-- [x] **Bilingual interface**: every prompt, `/help`, key hints and installer output in Simplified Chinese and English
-- [x] **`vivant-ctl doctor`**: checks service, ports, firewall, DNS, Cloudflare grey cloud (from sshoosh)
-- [x] **Optional hardening**: per-connection read throttle, Docker image (from ssh-chat, sshoosh)
-- [x] **Handshake timeout**: connections that don't enter the chat within 30 s are closed, so scanners can't hold slots; installer and `doctor` warn about well-known ports like 443
-- [x] **External monitoring, passphrase design rule**: documented (from devzat, ssh-chat, sshoosh)
-- [x] **Hardening after a security review**: modern SSH algorithms only, invisible and tag characters stripped (with a fuzz test), global TCP cap, fresh ban key when no ban is active
-- [x] **Renamed to VIVANT**: old servers migrate by running the installer
-- [x] **Offline one-click install**: one self-extracting file, `--to root@SERVER` deploys straight from your computer; plus Windows / macOS binaries for testing and LANs
-- [x] **Nobody is kicked** (v0.11.5): quiet sessions and locked phones stay connected and are back in their room on unlock; a slot is freed only when the peer is really gone (about 15 minutes without a network). Upgrading removes the old "disconnect after 1 hour without posting" default
 
 ## Documentation
 
