@@ -45,10 +45,10 @@ public class MainActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private TextView status, online, tunnelStatus, error, connect, netHint, netConnect, fingerprint, log, advToggle, logToggle;
     private Button toggle, battery, etNew;
-    private EditText port, maxClients, rooms, extra, etPeer, etName, etSecret, frpServer, frpServerPort, frpToken, frpRemotePort;
+    private EditText port, maxClients, rooms, extra, etPeer, etName, etSecret;
     private CheckBox autostart;
     private RadioGroup tunnel;
-    private View etGroup, frpGroup, advGroup;
+    private View etGroup, advGroup;
     private ScrollView logScroll;
     private long shownLog = -1;
     private int tick;
@@ -88,14 +88,9 @@ public class MainActivity extends Activity {
         etPeer = findViewById(R.id.et_peer);
         etName = findViewById(R.id.et_name);
         etSecret = findViewById(R.id.et_secret);
-        frpServer = findViewById(R.id.frp_server);
-        frpServerPort = findViewById(R.id.frp_server_port);
-        frpToken = findViewById(R.id.frp_token);
-        frpRemotePort = findViewById(R.id.frp_remote_port);
         autostart = findViewById(R.id.autostart);
         tunnel = findViewById(R.id.tunnel);
         etGroup = findViewById(R.id.et_group);
-        frpGroup = findViewById(R.id.frp_group);
         try {
             ((TextView) findViewById(R.id.version)).setText("v" + getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
         } catch (PackageManager.NameNotFoundException ignored) {
@@ -155,26 +150,19 @@ public class MainActivity extends Activity {
         autostart.setChecked(Prefs.autostart(this));
         etName.setText(Prefs.etName(this));
         etSecret.setText(Prefs.etSecret(this));
-        frpServer.setText(Prefs.frpServer(this));
-        frpServerPort.setText(String.valueOf(Prefs.frpServerPort(this)));
-        frpToken.setText(Prefs.frpToken(this));
-        frpRemotePort.setText(String.valueOf(Prefs.frpRemotePort(this)));
         String t = Prefs.tunnel(this);
-        tunnel.check(Prefs.TUNNEL_EASYTIER.equals(t) ? R.id.tunnel_et : Prefs.TUNNEL_FRP.equals(t) ? R.id.tunnel_frp : R.id.tunnel_off);
+        tunnel.check(Prefs.TUNNEL_EASYTIER.equals(t) ? R.id.tunnel_et : R.id.tunnel_off);
         showTunnelGroups();
     }
 
     private String tunnelFromRadio() {
         int id = tunnel.getCheckedRadioButtonId();
-        if (id == R.id.tunnel_et) return Prefs.TUNNEL_EASYTIER;
-        if (id == R.id.tunnel_frp) return Prefs.TUNNEL_FRP;
-        return Prefs.TUNNEL_OFF;
+        return id == R.id.tunnel_et ? Prefs.TUNNEL_EASYTIER : Prefs.TUNNEL_OFF;
     }
 
     private void showTunnelGroups() {
         String t = tunnelFromRadio();
         etGroup.setVisibility(Prefs.TUNNEL_EASYTIER.equals(t) ? View.VISIBLE : View.GONE);
-        frpGroup.setVisibility(Prefs.TUNNEL_FRP.equals(t) ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -232,22 +220,6 @@ public class MainActivity extends Activity {
                 ok = false;
             }
         }
-        int fsp = parse(frpServerPort), frp = parse(frpRemotePort);
-        String server = frpServer.getText().toString().trim();
-        if (Prefs.TUNNEL_FRP.equals(t)) {
-            if (server.isEmpty()) {
-                frpServer.setError(getString(R.string.err_need));
-                ok = false;
-            }
-            if (fsp < 1 || fsp > 65535) {
-                frpServerPort.setError(getString(R.string.err_need));
-                ok = false;
-            }
-            if (frp < 1 || frp > 65535) {
-                frpRemotePort.setError(getString(R.string.err_need));
-                ok = false;
-            }
-        }
         if (!ok) return false;
         Prefs.sp(this).edit()
                 .putInt("port", p)
@@ -259,10 +231,6 @@ public class MainActivity extends Activity {
                 .putString("tunnel", t)
                 .putString("et_name", name)
                 .putString("et_secret", secret)
-                .putString("frp_server", server)
-                .putInt("frp_server_port", fsp > 0 ? fsp : 7000)
-                .putString("frp_token", frpToken.getText().toString())
-                .putInt("frp_remote_port", frp > 0 ? frp : p)
                 .apply();
         return true;
     }
@@ -310,8 +278,7 @@ public class MainActivity extends Activity {
 
         boolean editable = !run && !wanted;
         for (View v : new View[]{port, maxClients, rooms, extra, etPeer, etName, etSecret, etNew,
-                frpServer, frpServerPort, frpToken, frpRemotePort,
-                findViewById(R.id.tunnel_off), findViewById(R.id.tunnel_et), findViewById(R.id.tunnel_frp)}) {
+                findViewById(R.id.tunnel_off), findViewById(R.id.tunnel_et)}) {
             v.setEnabled(editable);
         }
 
@@ -349,13 +316,6 @@ public class MainActivity extends Activity {
                     + " --port-forward tcp://127.0.0.1:2222/" + Prefs.ET_IP + ":" + relay
                     + "\n\nssh -p 2222 guest@127.0.0.1";
             hint = getString(R.string.net_hint_et) + "\n" + getString(R.string.net_hint_et_app, relay, Prefs.ET_IP);
-        } else if (Prefs.TUNNEL_FRP.equals(t)) {
-            String server = frpServer.getText().toString().trim();
-            int remote = parse(frpRemotePort);
-            if (!server.isEmpty() && remote > 0) {
-                cmd = "ssh -p " + remote + " guest@" + server;
-                hint = getString(R.string.net_hint_frp);
-            }
         }
         netHint.setVisibility(cmd == null ? View.GONE : View.VISIBLE);
         netConnect.setVisibility(cmd == null ? View.GONE : View.VISIBLE);

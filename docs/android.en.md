@@ -33,7 +33,6 @@ Phones usually sit behind carrier NAT, so nobody outside can connect directly. P
 | --- | --- | --- |
 | **Off** | — | same Wi-Fi / hotspot only |
 | **EasyTier** (no server) | nothing; the app makes up a network name and password | they install [EasyTier](https://easytier.cn), run the line the app shows, then `ssh -p 2222 guest@127.0.0.1` |
-| **FRP** (your own server) | a VPS with a public IP running frps | nothing to install: `ssh -p PUBLIC_PORT guest@SERVER` |
 
 **EasyTier:** free P2P hole punching that copes with China's layered NATs, falling back to a public relay (`tcp://public.easytier.top:11010` by default; use your own node under Advanced). Send the network name and password to whoever should join; **New pair** retires the old ones. Visitors run something like:
 
@@ -44,11 +43,11 @@ ssh -p 2222 guest@127.0.0.1
 
 No admin rights needed. With the EasyTier GUI / mobile app, join the same network and `ssh -p 2224 guest@10.144.144.1` (use the port the app shows). The phone needs no VPN permission and no root.
 
-**FRP:** run frps on a VPS (`bindPort`, optional `auth.token`), then fill in server, port, token and public port in the app. Open the public port in the VPS firewall. The link to frps uses TLS.
-
 **Limits:** everyone coming through a tunnel looks like the phone itself to the server, so the app gives tunnels their own local entrance (`-relay-addr`) where they share the same generous limits as Tor users (300 at once, 120 new connections a minute) instead of one address's small quota.
 
-**Privacy:** SSH is end-to-end encrypted, so relays and frps can't read the chat — but the public EasyTier relay and your frps do see visitors' IP addresses. If that matters, use your own EasyTier node or frps.
+**Privacy:** SSH is end-to-end encrypted, so relays can't read the chat — but the public EasyTier relay does see visitors' IP addresses. If that matters, use your own EasyTier node.
+
+EasyTier is the only internet access option (the FRP option was removed; if you had chosen FRP, internet access is off after the update — choose EasyTier again).
 
 ## Networking
 
@@ -72,17 +71,16 @@ Same as on a VPS: no accounts, no IPs / nicknames / messages in the log, chat ke
 
 ## Build it yourself
 
-Needs Rust, the Android NDK (r25+), JDK 17, and Gradle 8.14+ or Android Studio; the tunnel tools also need Go, protoc and cmake:
+Needs Rust, the Android NDK (r25+), JDK 17, and Gradle 8.14+ or Android Studio; EasyTier also needs protoc and cmake:
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 export ANDROID_NDK_HOME=/path/to/ndk
 android/build-native.sh               # VIVANT server -> jniLibs/*/libvivant.so
 android/build-tunnels.sh easytier     # EasyTier -> jniLibs/*/libeasytier.so
-android/build-tunnels.sh frpc         # frpc -> jniLibs/*/libfrpc.so
 gradle -p android assembleRelease     # -> android/app/build/outputs/apk/release/
 ```
 
-EasyTier and frp are built from their official sources at the versions pinned in `android/tunnels.env`, not from someone else's binaries. All three programs are packed as `lib*.so` (really plain executables) so Android extracts them to the app's native library directory — the only place an app may execute programs from; a foreground service runs them as child processes.
+EasyTier is built from its official source at the version pinned in `android/tunnels.env`, not from someone else's binaries. Both programs are packed as `lib*.so` (really plain executables) so Android extracts them to the app's native library directory — the only place an app may execute programs from; a foreground service runs them as child processes.
 
 **Signing:** without configuration the APK is debug-signed, with a different key on every CI run, so uninstall the old one before updating. For stable signing add the repository secrets `ANDROID_KEYSTORE_BASE64` (base64 of a `.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (optionally `ANDROID_KEY_PASSWORD`). Locally use `VIVANT_KEYSTORE`, `VIVANT_KEYSTORE_PASSWORD`, `VIVANT_KEY_ALIAS`, `VIVANT_KEY_PASSWORD`.

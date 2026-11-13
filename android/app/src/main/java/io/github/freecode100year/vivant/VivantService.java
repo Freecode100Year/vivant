@@ -29,7 +29,7 @@ import java.util.Map;
 
 /**
  * Foreground service that runs the VIVANT server (libvivant.so) and, if
- * internet access is on, a tunnel (libeasytier.so or libfrpc.so) as child
+ * internet access is on, a tunnel (libeasytier.so) as child
  * processes; keeps CPU and Wi-Fi awake, restarts them when they exit, and
  * polls /healthz for the online count.
  */
@@ -144,13 +144,12 @@ public class VivantService extends Service {
             if (Prefs.TUNNEL_OFF.equals(tunnelKind)) ServerState.tunnel = ServerState.TUNNEL_OFF;
             return;
         }
-        final String kind = tunnelKind;
         ServerState.tunnel = ServerState.TUNNEL_CONNECTING;
         try {
-            tunnel.start(Tunnels.command(this, kind), tunnelDir(), env(), new Child.Listener() {
+            tunnel.start(Tunnels.command(this), tunnelDir(), env(), new Child.Listener() {
                 @Override
                 public void onLine(String line) {
-                    String shown = Tunnels.onLine(kind, line);
+                    String shown = Tunnels.onLine(line);
                     if (shown != null) ServerState.log(shown);
                     if (ServerState.tunnel == ServerState.TUNNEL_UP) tunnelFails = 0;
                 }

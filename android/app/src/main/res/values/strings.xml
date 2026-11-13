@@ -19,7 +19,6 @@
     <string name="connect_lan">同一 Wi-Fi 或连着本机热点的人，输入下面任意一行（iPhone 用 Termius 等 SSH App）· Same Wi-Fi or this phone\'s hotspot — type any line (iPhone: an SSH app like Termius):</string>
     <string name="net_hint_et">外网的人：先装 EasyTier（easytier.cn），再依次运行下面两行 · From anywhere: install EasyTier (easytier.cn), then run these two lines:</string>
     <string name="net_hint_et_app">（用 EasyTier App 的话：加入同名网络后 ssh -p %1$d guest@%2$s）· (EasyTier app: join the network, then ssh -p %1$d guest@%2$s)</string>
-    <string name="net_hint_frp">外网的人，输入 · From anywhere, type:</string>
     <string name="copy">复制 · Copy</string>
     <string name="copied">已复制 · Copied</string>
     <string name="no_network">没有网络连接 · No network</string>
@@ -29,17 +28,10 @@
     <string name="net_title">外网访问 · Internet access</string>
     <string name="net_off">关闭（只限局域网 / 热点）· Off (LAN / hotspot only)</string>
     <string name="net_et">EasyTier（不用服务器）· EasyTier (no server needed)</string>
-    <string name="net_frp">FRP（用自己的服务器）· FRP (your own server)</string>
     <string name="et_hint">免费、点对点打洞，连不通时走公共中继。对方也要装 EasyTier。把网络名和密码发给想进来的人。· Free P2P with a public relay as fallback. Visitors install EasyTier too — send them the name and password.</string>
     <string name="et_name">网络名 · Network name</string>
     <string name="et_secret">网络密码 · Network password</string>
     <string name="et_new">换一组 · New pair</string>
-    <string name="frp_hint">需要一台装了 frps 的公网服务器；对方什么都不用装，直接 ssh。· Needs a public server running frps; visitors install nothing.</string>
-    <string name="frp_server">服务器地址 · Server address</string>
-    <string name="frp_server_hint">frp.example.com</string>
-    <string name="frp_server_port">服务器端口 · Server port (bindPort)</string>
-    <string name="frp_token">令牌（没有就留空）· Token (empty if none)</string>
-    <string name="frp_remote_port">外网端口 · Public port</string>
 
     <string name="adv_title">▸ 高级设置 · Advanced</string>
     <string name="adv_title_open">▾ 高级设置 · Advanced</string>
