@@ -132,7 +132,7 @@
                 android:textIsSelectable="true" />
         </LinearLayout>
 
-        <!-- 3. internet access: off / EasyTier / FRP -->
+        <!-- 3. internet access: off / EasyTier -->
         <LinearLayout style="@style/Card">
 
             <TextView
@@ -155,11 +155,6 @@
                     android:id="@+id/tunnel_et"
                     style="@style/Radio"
                     android:text="@string/net_et" />
-
-                <RadioButton
-                    android:id="@+id/tunnel_frp"
-                    style="@style/Radio"
-                    android:text="@string/net_frp" />
             </RadioGroup>
 
             <LinearLayout
@@ -192,47 +187,6 @@
                     style="@style/BtnLight"
                     android:layout_width="wrap_content"
                     android:text="@string/et_new" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/frp_group"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView style="@style/Hint" android:text="@string/frp_hint" />
-
-                <TextView style="@style/Label" android:text="@string/frp_server" />
-                <EditText
-                    android:id="@+id/frp_server"
-                    style="@style/Field"
-                    android:hint="@string/frp_server_hint"
-                    android:importantForAutofill="no"
-                    android:inputType="textUri" />
-
-                <TextView style="@style/Label" android:text="@string/frp_server_port" />
-                <EditText
-                    android:id="@+id/frp_server_port"
-                    style="@style/Field"
-                    android:importantForAutofill="no"
-                    android:inputType="number"
-                    android:maxLength="5" />
-
-                <TextView style="@style/Label" android:text="@string/frp_token" />
-                <EditText
-                    android:id="@+id/frp_token"
-                    style="@style/Field"
-                    android:importantForAutofill="no"
-                    android:inputType="textPassword" />
-
-                <TextView style="@style/Label" android:text="@string/frp_remote_port" />
-                <EditText
-                    android:id="@+id/frp_remote_port"
-                    style="@style/Field"
-                    android:importantForAutofill="no"
-                    android:inputType="number"
-                    android:maxLength="5" />
             </LinearLayout>
         </LinearLayout>
 
