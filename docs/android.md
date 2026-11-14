@@ -33,7 +33,6 @@
 | --- | --- | --- |
 | **关闭** | — | 只有同一 Wi-Fi / 热点 |
 | **EasyTier**（不用服务器） | 什么都不用准备；App 自动生成网络名和密码 | 对方先装 [EasyTier](https://easytier.cn)，运行 App 里显示的那行命令，再 `ssh -p 2222 guest@127.0.0.1` |
-| **FRP**（自己的服务器） | 一台有公网 IP、运行 frps 的 VPS | 什么都不用装，直接 `ssh -p 外网端口 guest@服务器地址` |
 
 **EasyTier：** 免费、点对点打洞，国内复杂 NAT 也能通；打不通时自动走公共中继（默认 `tcp://public.easytier.top:11010`，可在高级设置里换成自己的节点）。把网络名和密码发给想进来的人，「换一组」可以随时作废旧的。对方运行的命令类似：
 
@@ -44,11 +43,11 @@ ssh -p 2222 guest@127.0.0.1
 
 不需要管理员权限。用 EasyTier 图形版 / 手机 App 的话，加入同名网络后直接 `ssh -p 2224 guest@10.144.144.1`（端口以 App 显示为准）。手机这边不建 VPN、不要 root，也不占用系统 VPN 位置。
 
-**FRP：** 在 VPS 上装好 frps（`bindPort`，可选 `auth.token`），在 App 里填服务器地址、端口、令牌和外网端口。别忘了在 VPS 防火墙里放行外网端口。和 frps 之间默认走 TLS。
-
 **限额：** 经穿透进来的连接在服务器看来都来自本机，所以 App 让它们走单独的本地入口（`-relay-addr`），共用一组和 Tor 用户相同的宽松限额（同时 300 人、每分钟 120 个新连接），而不是挤在一个地址的小限额里。
 
-**隐私：** SSH 本身端到端加密，中继和 frps 看不到聊天内容；但 EasyTier 公共中继和你的 frps 能看到访客的 IP。对 IP 敏感的人，请用自己的 EasyTier 节点或 frps。
+**隐私：** SSH 本身端到端加密，中继看不到聊天内容；但 EasyTier 公共中继能看到访客的 IP。对 IP 敏感的人，请用自己的 EasyTier 节点。
+
+外网访问只保留 EasyTier（以前的 FRP 选项已移除；之前选了 FRP 的，升级后外网访问为「关闭」，重新选 EasyTier 即可）。
 
 ## 网络说明
 
@@ -72,17 +71,16 @@ ssh -p 2222 guest@127.0.0.1
 
 ## 自己构建
 
-需要 Rust、Android NDK（r25+）、JDK 17、Gradle 8.14+ 或 Android Studio；穿透工具另需 Go、protoc、cmake：
+需要 Rust、Android NDK（r25+）、JDK 17、Gradle 8.14+ 或 Android Studio；EasyTier 另需 protoc、cmake：
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 export ANDROID_NDK_HOME=/path/to/ndk
 android/build-native.sh               # VIVANT 服务器 → jniLibs/*/libvivant.so
 android/build-tunnels.sh easytier     # EasyTier → jniLibs/*/libeasytier.so
-android/build-tunnels.sh frpc         # frpc → jniLibs/*/libfrpc.so
 gradle -p android assembleRelease     # → android/app/build/outputs/apk/release/
 ```
 
-EasyTier 和 frp 都从官方源码按 `android/tunnels.env` 里固定的版本编译，不用别人的预编译文件。三个程序都以 `lib*.so` 的名字打进 APK（其实是普通可执行文件），这样安卓会把它们解压到 App 的原生库目录——App 唯一允许执行程序的地方；前台服务用子进程启动它们。
+EasyTier 从官方源码按 `android/tunnels.env` 里固定的版本编译，不用别人的预编译文件。两个程序都以 `lib*.so` 的名字打进 APK（其实是普通可执行文件），这样安卓会把它们解压到 App 的原生库目录——App 唯一允许执行程序的地方；前台服务用子进程启动它们。
 
 **签名：** 不设置时用调试密钥签名，每次 CI 构建的密钥不同，升级前要先卸载旧版。想要稳定签名，在仓库 Secrets 里添加 `ANDROID_KEYSTORE_BASE64`（`.jks` 文件的 base64）、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`（可选 `ANDROID_KEY_PASSWORD`）。本地构建用环境变量 `VIVANT_KEYSTORE`、`VIVANT_KEYSTORE_PASSWORD`、`VIVANT_KEY_ALIAS`、`VIVANT_KEY_PASSWORD`。

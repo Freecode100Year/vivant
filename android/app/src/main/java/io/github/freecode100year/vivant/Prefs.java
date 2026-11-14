@@ -14,7 +14,6 @@ final class Prefs {
 
     static final String TUNNEL_OFF = "off";
     static final String TUNNEL_EASYTIER = "easytier";
-    static final String TUNNEL_FRP = "frp";
 
     /** This phone's address inside the EasyTier network. */
     static final String ET_IP = "10.144.144.1";
@@ -40,7 +39,10 @@ final class Prefs {
     static void setRunning(Context c, boolean on) { sp(c).edit().putBoolean("running", on).apply(); }
 
     // internet access
-    static String tunnel(Context c) { return sp(c).getString("tunnel", TUNNEL_OFF); }
+    /** off or easytier. FRP was removed; a phone that had chosen it starts with internet access off. */
+    static String tunnel(Context c) {
+        return TUNNEL_EASYTIER.equals(sp(c).getString("tunnel", TUNNEL_OFF)) ? TUNNEL_EASYTIER : TUNNEL_OFF;
+    }
     static String etName(Context c) { return generated(c, "et_name", "vivant-", 10); }
     static String etSecret(Context c) { return generated(c, "et_secret", "", 16); }
     static String etPeer(Context c) {
@@ -55,11 +57,6 @@ final class Prefs {
         }
         return id;
     }
-    static String frpServer(Context c) { return sp(c).getString("frp_server", "").trim(); }
-    static int frpServerPort(Context c) { return sp(c).getInt("frp_server_port", 7000); }
-    static String frpToken(Context c) { return sp(c).getString("frp_token", ""); }
-    static int frpRemotePort(Context c) { return sp(c).getInt("frp_remote_port", DEFAULT_PORT); }
-    static String frpProxyName(Context c) { return generated(c, "frp_name", "vivant-", 6); }
 
     /** A new random EasyTier network name and password. */
     static void regenerateEasyTier(Context c) {
