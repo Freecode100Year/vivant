@@ -1,6 +1,6 @@
 [Unit]
 Description=VIVANT (anonymous SSH chat)
-Documentation=https://github.com/Freecode100Year/vivant
+Documentation=https://gitlab.com/sj9292008133/vivant
 After=network-online.target
 Wants=network-online.target
 

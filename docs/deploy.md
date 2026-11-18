@@ -7,19 +7,19 @@
 在 VPS 上（Debian / Ubuntu / RHEL 系等任何 systemd Linux，x86_64、ARM64、ARMv7）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install.sh | sudo bash
+curl -fsSL https://gitlab.com/sj9292008133/vivant/-/raw/main/install.sh | sudo bash
 ```
 
 带参数（注意 `-s --`）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install.sh \
-  | sudo bash -s -- --port 2222 --admin-key github:你的GitHub用户名 --domain term.freedom8964.com
+curl -fsSL https://gitlab.com/sj9292008133/vivant/-/raw/main/install.sh \
+  | sudo bash -s -- --port 2222 --admin-key gitlab:你的GitLab用户名 --domain term.freedom8964.com
 ```
 
 脚本会自动完成以下步骤：
 
-1. 识别 CPU 架构，从 GitHub Release 下载对应二进制并**校验 SHA256**（下载失败时自动从源码编译）
+1. 识别 CPU 架构，从 dl.freedom8964.com 下载对应二进制并**校验 SHA256**（下载失败时自动从源码编译）
 2. 安装为带完整沙箱的 systemd 服务（一次性无权限用户、只读系统、无 capability）
 3. 生成 `/etc/vivant.env` 配置
 4. 放行防火墙端口（ufw / firewalld / iptables，包括 Oracle Cloud 镜像自带的 REJECT 规则）
@@ -42,7 +42,7 @@ sudo vivant-ctl uninstall --purge # 彻底删除
 | 安装参数 | 说明 |
 | --- | --- |
 | `--port N` | 聊天室 SSH 端口，默认 2222。用 22 需先把系统 sshd 挪走，脚本会自动加端口权限 |
-| `--admin-key KEY` | 管理员公钥：`ssh-ed25519 AAAA…`、`.pub` 文件路径，或 `github:用户名`；可重复 |
+| `--admin-key KEY` | 管理员公钥：`ssh-ed25519 AAAA…`、`.pub` 文件路径、`github:用户名` 或 `gitlab:用户名`；可重复 |
 | `--max-clients N` | 最多同时在线人数。默认 `auto`：按本机内存和 CPU 核数自动计算（内存的一半按每人 200 KB 算、每核 2500 人，取小者，100–20000），每次重装或升级都会重新计算；设了具体数字就一直保留 |
 | `--rooms LIST` | 公共频道，如 `"general:大厅,chinese:中文,tech:技术"`（第一个是大厅） |
 | `--domain NAME` | 用户连接用的域名：显示在最后的连接命令里，`doctor` 也用它检查解析 |
@@ -60,9 +60,9 @@ sudo vivant-ctl uninstall --purge # 彻底删除
 - 云厂商的防火墙（Oracle VCN 安全列表、AWS/GCP 安全组等）放行 TCP 端口。
 - 域名 A/AAAA 记录指向 VPS。在 Cloudflare 上必须设为 **DNS only（灰云）**，橙云代理不转发 SSH。
 
-## 离线安装（服务器连不上 GitHub）
+## 离线安装（服务器连不上下载站）
 
-每次发布都附带一个离线一键安装包 `vivant-<版本>-linux-offline.sh`：一个文件里包含三种架构的程序、安装脚本和校验文件，运行时不联网。在能上网的电脑上从 [Releases](https://github.com/Freecode100Year/vivant/releases) 下载，然后任选一种方式：
+每次发布都附带一个离线一键安装包 `vivant-<版本>-linux-offline.sh`：一个文件里包含三种架构的程序、安装脚本和校验文件，运行时不联网。在能上网的电脑上从 [Releases](https://dl.freedom8964.com/) 下载，然后任选一种方式：
 
 ```bash
 # 方式一：在自己电脑上一条命令部署到服务器（Linux、macOS，或 Windows 的 Git Bash / WSL）
@@ -77,11 +77,11 @@ sudo bash vivant-v0.9.9-linux-offline.sh
 
 安装包会先校验自身（下载不完整或被改动会直接拒绝），再解压出安装脚本和程序，安装脚本按 `SHA256SUMS` 再校验一次程序后安装，结束后删除临时文件。升级时下载新的离线包再运行一次即可，配置和主机密钥会保留。`bash vivant-…-linux-offline.sh --extract` 只解压不安装，`--help` 列出全部参数。
 
-仍然需要联网的只有：`--tor`（要从软件源装 tor，已装好则不用）和 `--admin-key github:用户名`（离线时请直接给公钥文件）。离线服务器上的 `vivant-ctl upgrade` 会因为连不上 GitHub 而失败，升级请用新的离线包。
+仍然需要联网的只有：`--tor`（要从软件源装 tor，已装好则不用）和 `--admin-key github:用户名` / `gitlab:用户名`（离线时请直接给公钥文件）。离线服务器上的 `vivant-ctl upgrade` 会因为连不上下载站 而失败，升级请用新的离线包。
 
 ## Windows / macOS
 
-服务器建议用 Linux。想在 Windows 或 Mac 上临时跑一个（本机测试、局域网里和朋友聊），发布页里有 `vivant-windows-amd64.exe`、`vivant-windows-arm64.exe`、`vivant-macos-amd64`、`vivant-macos-arm64`，下载后直接运行：
+服务器建议用 Linux。想在 Windows 或 Mac 上临时跑一个（本机测试、局域网里和朋友聊），下载页 https://dl.freedom8964.com 里有 `vivant-windows-amd64.exe`、`vivant-windows-arm64.exe`、`vivant-macos-amd64`、`vivant-macos-arm64`，下载后直接运行：
 
 ```bash
 ./vivant-macos-arm64 -addr :2222          # macOS（Apple 芯片）；首次运行需在「系统设置 → 隐私与安全性」里允许
@@ -177,19 +177,20 @@ sudo vivant-ctl status        # 输出里的 Host key: SHA256:…
 
 ## Docker（可选）
 
-一键脚本（systemd）仍是推荐方式。习惯用容器的话，每次发布都会推送多架构镜像（amd64 / arm64 / armv7）到 GHCR：
+一键脚本（systemd）仍是推荐方式。习惯用容器的话，先从 GitLab 源码构建镜像（原来的 GHCR 镜像随 GitHub 账号停用，已经拉不到了）：
 
 ```bash
+docker build -t vivant https://gitlab.com/sj9292008133/vivant.git#main
 docker run -d --name vivant --restart unless-stopped --network host \
   --read-only --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
   -v vivant-data:/data \
-  ghcr.io/freecode100year/vivant:latest
+  vivant
 ```
 
-或者用仓库里的 [`deploy/docker-compose.yml`](../deploy/docker-compose.yml)：`docker compose -f deploy/docker-compose.yml up -d`。
+或者用仓库里的 [`deploy/docker-compose.yml`](../deploy/docker-compose.yml)：`docker compose -f deploy/docker-compose.yml up -d --build`。
 
 - **一定要用 `--network host`。** 用 `-p 2222:2222` 时，Docker 的端口代理（IPv6、某些发行版的 IPv4）会把所有用户的来源都变成同一个地址，大家就共用一份限流额度，一个人刷屏会连累所有人，封禁也会误伤所有人。
 - 镜像基于 distroless，没有 shell，以非 root 用户（uid 65532）运行；主机密钥保存在卷 `vivant-data` 的 `/data/host_ed25519`，删卷等于换密钥。
-- 配置用环境变量（同上表的 `VIVANT_*`）或在镜像名后追加参数，例如 `… vivant:latest -max-per-ip 3`。
+- 配置用环境变量（同上表的 `VIVANT_*`）或在镜像名后追加参数，例如 `… vivant -max-per-ip 3`。
 - 防火墙、Tor、`vivant-ctl doctor` 这些由一键脚本处理的事情，容器部署需要自己做。
 - 自己构建：`docker build -t vivant .`

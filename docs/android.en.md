@@ -6,7 +6,7 @@ Turn an Android phone into a VIVANT chat server: install the APK, tap **Start**,
 
 ## Install
 
-1. From Releases: most phones want `vivant-android-arm64.apk`; if unsure take `vivant-android.apk` (universal, bigger). Also in the Artifacts of the latest successful run of [Actions → Android](https://github.com/Freecode100Year/vivant/actions/workflows/android.yml).
+1. From https://dl.freedom8964.com : most phones want `vivant-android-arm64.apk`; if unsure take `vivant-android.apk` (universal, bigger). Also in the Artifacts of the latest successful run of [Actions → Android](https://dl.freedom8964.com/).
 2. Open it on the phone and allow "install unknown apps" when asked.
 3. Needs Android 8.0+; ARM64, ARMv7 and x86_64 are included.
 

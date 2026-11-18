@@ -12,7 +12,7 @@ make bench     # 压测
 
 用 Rust 编写（stable，1.85+），SSH 协议用 [russh](https://github.com/Eugeny/russh)，加密走 ring，不依赖 OpenSSL。v1.0 之前的版本是 Go 写的，命令行参数、环境变量、配置文件、主机密钥、封禁文件和 bot 协议都保持兼容，已安装的服务器直接 `vivant-ctl upgrade` 即可。
 
-发布流程：修改 `VERSION` 文件（如 `1.0.1`）并推送到 main，或者推送 `vX.Y.Z` 标签，GitHub Actions 会自动测试、构建 Linux 三种架构（静态 musl）和 macOS / Windows 程序，发布 Release（附 `SHA256SUMS`）和 Docker 镜像。服务器上执行 `sudo vivant-ctl upgrade` 即可升级。每次推送 main 时，CI 会检查格式和 clippy、用 cargo audit 检查依赖有没有已公开的漏洞（发布前也会再查一次）、交叉编译所有平台，并在带 systemd 的 Ubuntu 上实际执行一遍安装脚本：从旧版 Private-Talk Terminal 迁移、安装、聊天、确认拒绝 exec、Tor、备用端口、封禁持久化、自检、改端口、卸载；另外构建并运行 Docker 镜像。
+发布流程：修改 `VERSION` 文件（如 `1.0.1`），在本地交叉编译 Linux 三种架构（静态 musl，`cargo zigbuild`）、Windows 程序和安卓 APK，连同 `SHA256SUMS` 放到下载站 https://dl.freedom8964.com/vivant/releases/<版本>/（`latest` 指向最新版），源码推送到 GitLab：https://gitlab.com/sj9292008133/vivant 。服务器上执行 `sudo vivant-ctl upgrade` 即可升级。`.github/workflows/` 里的 CI 配置是 GitHub 时期留下的，记录了发布前要跑的全部检查（格式、clippy、cargo audit、各平台交叉编译、在带 systemd 的 Ubuntu 上实际执行一遍安装脚本、Docker 镜像）。
 
 ```
 src/main.rs                 参数、健康检查、优雅退出

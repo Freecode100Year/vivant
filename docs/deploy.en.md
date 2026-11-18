@@ -7,19 +7,19 @@
 On a VPS (Debian, Ubuntu, the RHEL family or any other systemd Linux; x86_64, ARM64, ARMv7):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install.sh | sudo bash
+curl -fsSL https://gitlab.com/sj9292008133/vivant/-/raw/main/install.sh | sudo bash
 ```
 
 With options (note the `-s --`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install.sh \
-  | sudo bash -s -- --port 2222 --admin-key github:YourGitHubName --domain term.freedom8964.com
+curl -fsSL https://gitlab.com/sj9292008133/vivant/-/raw/main/install.sh \
+  | sudo bash -s -- --port 2222 --admin-key gitlab:YourGitLabName --domain term.freedom8964.com
 ```
 
 The script:
 
-1. Detects the CPU architecture, downloads the matching binary from GitHub Releases and **verifies its SHA256** (builds from source if the download fails)
+1. Detects the CPU architecture, downloads the matching binary from dl.freedom8964.com and **verifies its SHA256** (builds from source if the download fails)
 2. Installs it as a fully sandboxed systemd service (throwaway unprivileged user, read-only system, no capabilities)
 3. Creates `/etc/vivant.env`
 4. Opens the firewall port (ufw / firewalld / iptables, including the REJECT rule Oracle Cloud images ship)
@@ -42,7 +42,7 @@ All installer output is in Chinese and English.
 | Installer option | Meaning |
 | --- | --- |
 | `--port N` | SSH port for the chat, default 2222. For 22, move the system sshd first; the script adds the port capability itself |
-| `--admin-key KEY` | admin public key: `ssh-ed25519 AAAA…`, a `.pub` file path, or `github:USERNAME`; repeatable |
+| `--admin-key KEY` | admin public key: `ssh-ed25519 AAAA…`, a `.pub` file path, `github:USERNAME` or `gitlab:USERNAME`; repeatable |
 | `--max-clients N` | most people online at once. Default `auto`: computed from this machine's RAM and CPU cores (half the RAM at 200 KB per person, 2500 per core, whichever is smaller, 100–20000) and recomputed on every reinstall or upgrade; a number you set is kept |
 | `--rooms LIST` | public rooms, e.g. `"general:大厅 Lobby,chinese:中文,tech:技术"` (the first is the lobby) |
 | `--domain NAME` | the domain users connect to: shown in the final connect command and used by `doctor` for DNS checks |
@@ -60,9 +60,9 @@ Restricted network: point `VIVANT_DOWNLOAD_BASE=<mirror>` at a directory with `v
 - Allow the TCP port in your cloud provider's firewall (Oracle VCN security list, AWS/GCP security groups, …).
 - Point the domain's A/AAAA record at the VPS. On Cloudflare it must be **DNS only (grey cloud)**; the orange-cloud proxy doesn't forward SSH.
 
-## Offline install (server can't reach GitHub)
+## Offline install (server can't reach the download site)
 
-Every release includes an offline one-click installer, `vivant-<version>-linux-offline.sh`: a single file holding the binaries for all three architectures, the installer and checksums; it never touches the network. Download it from [Releases](https://github.com/Freecode100Year/vivant/releases) on a machine with internet access, then either:
+Every release includes an offline one-click installer, `vivant-<version>-linux-offline.sh`: a single file holding the binaries for all three architectures, the installer and checksums; it never touches the network. Download it from [Releases](https://dl.freedom8964.com/) on a machine with internet access, then either:
 
 ```bash
 # Option 1: deploy to the server with one command from your computer (Linux, macOS, or Git Bash / WSL on Windows)
@@ -77,7 +77,7 @@ Add the same options as the online installer, e.g. `--to root@SERVER --port 2222
 
 The file first verifies itself (an incomplete download or a modified file is refused), unpacks the installer and binaries, the installer checks the binary against `SHA256SUMS` again and installs it, and the temporary files are removed. To upgrade, get the new file and run it again; configuration and host key are kept. `--extract` only unpacks; `--help` lists every option.
 
-Only two options still need the network: `--tor` (installs tor from the package repositories, unless already installed) and `--admin-key github:USERNAME` (offline, pass a key file). On an offline server `vivant-ctl upgrade` can't reach GitHub and fails; upgrade with a new offline file instead.
+Only two options still need the network: `--tor` (installs tor from the package repositories, unless already installed) and `--admin-key github:USERNAME` / `gitlab:USERNAME` (offline, pass a key file). On an offline server `vivant-ctl upgrade` can't reach the download site and fails; upgrade with a new offline file instead.
 
 ## Windows / macOS
 
@@ -177,19 +177,20 @@ Other flags go in `VIVANT_ARGS=`. Every flag: `vivant -h`. The old `PTT_*` names
 
 ## Docker (optional)
 
-The one-line installer (systemd) is still the recommended way. If you prefer containers, every release pushes a multi-arch image (amd64 / arm64 / armv7) to GHCR:
+The one-line installer (systemd) is still the recommended way. If you prefer containers, build the image from the GitLab source first (the old GHCR image went away with the GitHub account):
 
 ```bash
+docker build -t vivant https://gitlab.com/sj9292008133/vivant.git#main
 docker run -d --name vivant --restart unless-stopped --network host \
   --read-only --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
   -v vivant-data:/data \
-  ghcr.io/freecode100year/vivant:latest
+  vivant
 ```
 
-Or use [`deploy/docker-compose.yml`](../deploy/docker-compose.yml): `docker compose -f deploy/docker-compose.yml up -d`.
+Or use [`deploy/docker-compose.yml`](../deploy/docker-compose.yml): `docker compose -f deploy/docker-compose.yml up -d --build`.
 
 - **Always use `--network host`.** With `-p 2222:2222`, Docker's port proxy (IPv6, and IPv4 on some distributions) makes every user appear to come from the same address: everyone shares one rate-limit allowance, one flooder affects all, and a ban hits everyone.
 - The image is distroless — no shell — and runs as a non-root user (uid 65532); the host key is `/data/host_ed25519` in the `vivant-data` volume, so deleting the volume means a new key.
-- Configure with environment variables (the `VIVANT_*` names above) or flags after the image name, e.g. `… vivant:latest -max-per-ip 3`.
+- Configure with environment variables (the `VIVANT_*` names above) or flags after the image name, e.g. `… vivant -max-per-ip 3`.
 - Firewall, Tor and `vivant-ctl doctor`, which the installer handles, are up to you with containers.
 - Build it yourself: `docker build -t vivant .`

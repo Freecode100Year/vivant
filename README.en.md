@@ -2,7 +2,6 @@
 
 [简体中文](README.md) | English
 
-[![CI](https://github.com/Freecode100Year/vivant/actions/workflows/ci.yml/badge.svg)](https://github.com/Freecode100Year/vivant/actions/workflows/ci.yml)
 
 Join an open chat room over SSH. No account, password, or app required.
 
@@ -53,12 +52,12 @@ See [Security and anonymity](docs/security.en.md) for more about the limits and 
 Install on a Linux VPS with one command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install.sh | sudo bash
+curl -fsSL https://gitlab.com/sj9292008133/vivant/-/raw/main/install.sh | sudo bash
 ```
 
-Manage it with `sudo vivant-ctl status | doctor | upgrade | uninstall`. If the server can't reach GitHub, use the offline installer from the releases page; Docker and temporary Windows / macOS servers are also available. See [Deployment and configuration](docs/deploy.en.md).
+Manage it with `sudo vivant-ctl status | doctor | upgrade | uninstall`. If the server can't reach the download site, use the offline installer from the download page https://dl.freedom8964.com; Docker and temporary Windows / macOS servers are also available. See [Deployment and configuration](docs/deploy.en.md).
 
-**An Android phone as the server:** install the APK from the releases page and tap Start; people on the same Wi-Fi or hotspot can join. See [Android phone as a server](docs/android.en.md).
+**An Android phone as the server:** install the APK from the download page https://dl.freedom8964.com and tap Start; people on the same Wi-Fi or hotspot can join. See [Android phone as a server](docs/android.en.md).
 
 ## Documentation
 

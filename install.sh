@@ -2,20 +2,22 @@
 # VIVANT — one-click installer / updater / uninstaller.
 # VIVANT 一键安装 / 升级 / 卸载
 #
-#   curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install.sh | sudo bash
+#   curl -fsSL https://gitlab.com/sj9292008133/vivant/-/raw/main/install.sh | sudo bash
 #
 # With options (note the "-s --"):
-#   curl -fsSL .../install.sh | sudo bash -s -- --port 2222 --admin-key github:YourGitHubName
+#   curl -fsSL .../install.sh | sudo bash -s -- --port 2222 --admin-key gitlab:YourGitLabName
 #
 # Commands:  install (default) | upgrade | uninstall [--purge] | status | doctor | help
 # Run "bash install.sh help" for every option.
 
 set -Eeuo pipefail
 
-REPO="Freecode100Year/vivant"
+REPO="sj9292008133/vivant"
+REPO_URL="https://gitlab.com/$REPO"
+DL_URL="https://dl.freedom8964.com/vivant/releases"
 BIN=/usr/local/bin/vivant
 CTL=/usr/local/sbin/vivant-ctl
-RAW_URL="https://raw.githubusercontent.com/$REPO/main/install.sh"
+RAW_URL="$REPO_URL/-/raw/main/install.sh"
 UNIT=/etc/systemd/system/vivant.service
 DROPIN_DIR=/etc/systemd/system/vivant.service.d
 ENV_FILE=/etc/vivant.env
@@ -77,8 +79,8 @@ ${C_B}VIVANT 安装器 · installer${C_0}
 
 选项 Options
   --port N           聊天室的 SSH 端口（默认 2222 或当前值）· SSH port for the chat (default 2222, or the current one)
-  --admin-key KEY    授予管理员权限；KEY 可以是 "ssh-ed25519 AAAA..."、.pub 文件路径或 github:用户名，可重复
-                     grant admin rights; KEY is "ssh-ed25519 AAAA...", a .pub file, or github:USERNAME. Repeatable.
+  --admin-key KEY    授予管理员权限；KEY 可以是 "ssh-ed25519 AAAA..."、.pub 文件路径、github:用户名或 gitlab:用户名，可重复
+                     grant admin rights; KEY is "ssh-ed25519 AAAA...", a .pub file, github:USERNAME or gitlab:USERNAME. Repeatable.
   --rooms LIST       公共房间 public rooms, e.g. "general:大厅 Lobby,chinese:中文,tech:技术"
   --domain NAME      用户连接用的域名（显示在连接命令里，doctor 也用它检查解析）
                      domain users connect to (shown in the connect command, used by doctor DNS checks)
@@ -230,9 +232,9 @@ download_release() {
 	if [ -n "$DOWNLOAD_BASE" ]; then
 		base=${DOWNLOAD_BASE%/}
 	elif [ "$VERSION" = latest ]; then
-		base="https://github.com/$REPO/releases/latest/download"
+		base="$DL_URL/latest"
 	else
-		base="https://github.com/$REPO/releases/download/$VERSION"
+		base="$DL_URL/$VERSION"
 	fi
 	local asset=vivant-linux-$ARCH
 	info "下载 Downloading $asset ← $base"
@@ -258,8 +260,8 @@ build_from_source() {
 			die "无法安装 Rust 工具链 · could not install the Rust toolchain"
 		cargo="$TMP/cargo/bin/cargo"
 	fi
-	if [ "$VERSION" = latest ]; then ref=heads/main; else ref=tags/$VERSION; fi
-	url="https://github.com/$REPO/archive/refs/$ref.tar.gz"
+	if [ "$VERSION" = latest ]; then ref=main; else ref=$VERSION; fi
+	url="$REPO_URL/-/archive/$ref/vivant-$ref.tar.gz"
 	info "下载源码 Fetching source ($ref)"
 	fetch "$url" "$TMP/src.tgz" || die "无法下载源码 could not download source: $url"
 	mkdir -p "$TMP/src"
@@ -314,7 +316,7 @@ print_unit() {
 	cat <<'EOF'
 [Unit]
 Description=VIVANT (anonymous SSH chat)
-Documentation=https://github.com/Freecode100Year/vivant
+Documentation=https://gitlab.com/sj9292008133/vivant
 After=network-online.target
 Wants=network-online.target
 
@@ -523,6 +525,7 @@ add_admin_keys() {
 	for spec in "${ADMIN_KEYS[@]}"; do
 		case "$spec" in
 		github:*) keys=$(fetch_stdout "https://github.com/${spec#github:}.keys") || die "拿不到公钥 could not fetch keys for $spec" ;;
+		gitlab:*) keys=$(fetch_stdout "https://gitlab.com/${spec#gitlab:}.keys") || die "拿不到公钥 could not fetch keys for $spec" ;;
 		ssh-* | ecdsa-* | sk-*) keys=$spec ;;
 		*) [ -f "$spec" ] || die "找不到管理员公钥文件 admin key file not found: $spec"; keys=$(cat "$spec") ;;
 		esac
@@ -1131,9 +1134,9 @@ do_doctor() {
 	fi
 
 	d_head "更新 Updates"
-	latest=$(fetch_stdout "https://raw.githubusercontent.com/$REPO/main/VERSION" 2>/dev/null | tr -d ' \n' || true)
+	latest=$(fetch_stdout "$REPO_URL/-/raw/main/VERSION" 2>/dev/null | tr -d ' \n' || true)
 	if ! [[ "$latest" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-		d_warn "无法检查更新（连不上 GitHub？）· couldn't check for updates (no access to GitHub?)"
+		d_warn "无法检查更新（连不上 GitLab？）· couldn't check for updates (no access to GitLab?)"
 	elif ! [[ "${v#v}" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
 		d_ok "开发版 development build $v（最新发布 latest release: v$latest）"
 	elif [ "${v#v}" = "$latest" ]; then

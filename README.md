@@ -2,7 +2,6 @@
 
 简体中文 | [English](README.en.md)
 
-[![CI](https://github.com/Freecode100Year/vivant/actions/workflows/ci.yml/badge.svg)](https://github.com/Freecode100Year/vivant/actions/workflows/ci.yml)
 
 用 SSH 进入一个开放的聊天室：不用注册、没有密码，也不需要安装 App。
 
@@ -53,12 +52,12 @@ SHA256:wBGFVRp15FZKX625k5Bh2VjGXwOqCqtAydpP0+fPyQA
 在 Linux VPS 上运行一条命令即可安装：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Freecode100Year/vivant/main/install.sh | sudo bash
+curl -fsSL https://gitlab.com/sj9292008133/vivant/-/raw/main/install.sh | sudo bash
 ```
 
-装好后用 `sudo vivant-ctl status | doctor | upgrade | uninstall` 管理。服务器连不上 GitHub 时用发布页的离线安装包；也可以用 Docker，或在 Windows / macOS 上临时运行。见[部署与配置](docs/deploy.md)。
+装好后用 `sudo vivant-ctl status | doctor | upgrade | uninstall` 管理。服务器连不上下载站 时用下载页 https://dl.freedom8964.com 的离线安装包；也可以用 Docker，或在 Windows / macOS 上临时运行。见[部署与配置](docs/deploy.md)。
 
-**用安卓手机当服务器：** 装上发布页的 APK，点「启动」，同一 Wi-Fi 或热点下的人就能连进来，见[安卓手机当服务器](docs/android.md)。
+**用安卓手机当服务器：** 装上下载页 https://dl.freedom8964.com 的 APK，点「启动」，同一 Wi-Fi 或热点下的人就能连进来，见[安卓手机当服务器](docs/android.md)。
 
 ## 文档
 

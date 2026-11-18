@@ -23,8 +23,8 @@ chmod 0755 "$work/$name"/vivant-linux-* "$work/$name/install.sh"
 cat >"$work/$name/README.txt" <<TXT
 VIVANT $ver — 离线安装包 · offline install bundle
 
-适用于连不上 GitHub 的服务器（x86_64、ARM64、ARMv7 的 systemd Linux）。
-For servers that can't reach GitHub (x86_64, ARM64, ARMv7 Linux with systemd).
+适用于连不上下载站 的服务器（x86_64、ARM64、ARMv7 的 systemd Linux）。
+For servers that can't reach the download site (x86_64, ARM64, ARMv7 Linux with systemd).
 
 一键安装 · One-click install:
   在服务器上 · on the server:          sudo bash $name.sh
@@ -39,7 +39,7 @@ SHA256SUMS first, and needs no network.
 
 需要联网的选项 · Options that still need the network:
   --tor                  要从软件源安装 tor（已装好则不用）· installs tor from the package repositories (unless already installed)
-  --admin-key github:…   要从 GitHub 拉公钥，离线时请用公钥文件 · fetches keys from GitHub; offline, pass a .pub file
+  --admin-key github:… / gitlab:…   要从 GitHub / GitLab 拉公钥，离线时请用公钥文件 · fetches keys online; offline, pass a .pub file
 
 升级：下载新的离线包，同样运行一次，配置和主机密钥会保留。
 Upgrading: get the new bundle and run ./install.sh again; config and host key are kept.

@@ -6,7 +6,7 @@
 
 ## 安装
 
-1. 从发布页（Releases）下载：大多数手机用 `vivant-android-arm64.apk`；不确定就下 `vivant-android.apk`（通用版，体积大一些）。也可以在 [Actions → Android](https://github.com/Freecode100Year/vivant/actions/workflows/android.yml) 最新一次成功构建的 Artifacts 里找到。
+1. 从下载页 https://dl.freedom8964.com 下载：大多数手机用 `vivant-android-arm64.apk`；不确定就下 `vivant-android.apk`（通用版，体积大一些）。也可以在 [Actions → Android](https://dl.freedom8964.com/) 最新一次成功构建的 Artifacts 里找到。
 2. 在手机上打开 APK，按提示允许「安装未知来源应用」。
 3. 需要 Android 8.0 及以上；支持 ARM64、ARMv7、x86_64。
 

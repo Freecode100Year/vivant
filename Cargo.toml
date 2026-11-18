@@ -5,7 +5,7 @@ edition = "2024"
 rust-version = "1.85"
 license = "MIT"
 description = "Anonymous chat room over SSH"
-repository = "https://github.com/Freecode100Year/vivant"
+repository = "https://gitlab.com/sj9292008133/vivant"
 publish = false
 
 [[bin]]

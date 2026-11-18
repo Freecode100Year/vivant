@@ -7,7 +7,7 @@
 - In the chat, `/privacy` shows the data policy of **this server's actual running configuration**: how long messages are kept, whether bans are persisted, whether Tor is on, what admins can do.
 - `/forget` immediately removes everything you posted this session from the server's room history.
 - Messages live in memory only and expire; no IPs, nicknames or message text in the logs; systemd forbids core dumps (`LimitCORE=0`), so a crash never writes chat contents to disk.
-- The code is open and releases are built by GitHub Actions from the public source, with SHA256SUMS. But nobody can verify remotely that a given server runs an unmodified build, so in the end it comes down to whether you trust the operator. **Never post anything that identifies you.** To hide your IP from the operator too, use Tor.
+- The code is open and releases are built from the public source, with SHA256SUMS. But nobody can verify remotely that a given server runs an unmodified build, so in the end it comes down to whether you trust the operator. **Never post anything that identifies you.** To hide your IP from the operator too, use Tor.
 
 - **SSH encrypts the connection, not end to end.** The server process can read messages; everyone is reminded of this on every visit.
 - **No shell.** No exec, SFTP/SCP, port forwarding, agent forwarding or X11. CI verifies this on a real server.
