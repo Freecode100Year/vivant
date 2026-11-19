@@ -250,7 +250,7 @@ download_release() {
 
 build_from_source() {
 	local cargo ref url
-	if command -v cargo >/dev/null && cargo --version 2>/dev/null | grep -Eq 'cargo 1\.(8[5-9]|9[0-9]|[1-9][0-9][0-9])\.'; then
+	if command -v cargo >/dev/null && cargo --version 2>/dev/null | grep -Eq 'cargo 1\.(89|9[0-9]|[1-9][0-9][0-9])\.'; then
 		cargo=$(command -v cargo)
 		info "使用已安装的 Using installed $(cargo --version | awk '{print $1, $2}')"
 	else

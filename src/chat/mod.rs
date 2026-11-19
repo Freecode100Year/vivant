@@ -367,9 +367,9 @@ pub fn bi(zh: &str, en: &str) -> String {
 /// Formats a duration as "24 小时"/"24h", "10 分钟"/"10m".
 pub fn dur_text(d: Duration) -> (String, String) {
     let s = d.as_secs();
-    if s >= 3600 && s % 3600 == 0 && d.subsec_nanos() == 0 {
+    if s >= 3600 && s.is_multiple_of(3600) && d.subsec_nanos() == 0 {
         (format!("{} 小时", s / 3600), format!("{}h", s / 3600))
-    } else if s >= 60 && s % 60 == 0 && d.subsec_nanos() == 0 {
+    } else if s >= 60 && s.is_multiple_of(60) && d.subsec_nanos() == 0 {
         (format!("{} 分钟", s / 60), format!("{}m", s / 60))
     } else {
         let t = go_duration(d);

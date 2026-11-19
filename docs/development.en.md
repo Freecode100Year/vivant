@@ -10,7 +10,7 @@ make dist      # cross-compile amd64 / arm64 / armv7 (static musl, needs cargo-z
 make bench     # load test
 ```
 
-Written in Rust (stable, 1.85+), with [russh](https://github.com/Eugeny/russh) for the SSH protocol and ring for cryptography — no OpenSSL. Versions before 1.0 were written in Go; flags, environment variables, config files, the host key, the ban files and the bot protocol are all compatible, so existing servers just run `vivant-ctl upgrade`.
+Written in Rust (stable, 1.89+), with [russh](https://github.com/Eugeny/russh) for the SSH protocol and ring for cryptography — no OpenSSL. Versions before 1.0 were written in Go; flags, environment variables, config files, the host key, the ban files and the bot protocol are all compatible, so existing servers just run `vivant-ctl upgrade`.
 
 To release: change the `VERSION` file (e.g. `1.0.1`), cross-compile the three Linux architectures (static musl, `cargo zigbuild`), the Windows binaries and the Android APKs locally, and put them with `SHA256SUMS` on the download site https://dl.freedom8964.com/vivant/releases/<version>/ (`latest` points at the newest); the source lives on GitLab: https://gitlab.com/sj9292008133/vivant . Servers upgrade with `sudo vivant-ctl upgrade`. The CI files in `.github/workflows/` date from the GitHub days and list every check to run before a release (formatting, clippy, cargo audit, cross-compiling every platform, running the installer for real on Ubuntu with systemd, the Docker image).
 

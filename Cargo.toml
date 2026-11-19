@@ -2,7 +2,7 @@
 name = "vivant"
 version = "0.0.0" # the real version comes from the VERSION file / VIVANT_VERSION at build time
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.89"
 license = "MIT"
 description = "Anonymous chat room over SSH"
 repository = "https://gitlab.com/sj9292008133/vivant"
