@@ -1,0 +1,10 @@
+# cargo audit settings (CI runs `cargo audit --deny warnings`).
+[advisories]
+# "Unmaintained" notices, not vulnerabilities, and no maintained release exists yet.
+# chrono / chrono-tz only format timestamps and resolve time zones for the chat;
+# they parse no untrusted input. Revisit by moving to jiff when it is worth it.
+ignore = [
+  "RUSTSEC-2026-0543", # chrono is unmaintained
+  "RUSTSEC-2026-0555", # chrono-tz is unmaintained
+  "RUSTSEC-2026-0559", # chrono-tz-build is unmaintained
+]
