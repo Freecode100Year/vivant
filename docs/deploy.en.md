@@ -177,17 +177,18 @@ Other flags go in `VIVANT_ARGS=`. Every flag: `vivant -h`. The old `PTT_*` names
 
 ## Docker (optional)
 
-The one-line installer (systemd) is still the recommended way. If you prefer containers, build the image from the GitLab source first (the old GHCR image went away with the GitHub account):
+The one-line installer (systemd) is still the recommended way. If you prefer containers, every release pushes a multi-arch image (amd64 / arm64 / armv7) to GHCR:
 
 ```bash
-docker build -t vivant https://gitlab.com/sj9292008133/vivant.git#main
 docker run -d --name vivant --restart unless-stopped --network host \
   --read-only --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
   -v vivant-data:/data \
-  vivant
+  ghcr.io/freecode100year/vivant:latest
 ```
 
-Or use [`deploy/docker-compose.yml`](../deploy/docker-compose.yml): `docker compose -f deploy/docker-compose.yml up -d --build`.
+If GHCR is out of reach, build it yourself: `docker build -t vivant https://gitlab.com/sj9292008133/vivant.git#main`, and use `vivant` as the image name above.
+
+Or use [`deploy/docker-compose.yml`](../deploy/docker-compose.yml): `docker compose -f deploy/docker-compose.yml up -d`.
 
 - **Always use `--network host`.** With `-p 2222:2222`, Docker's port proxy (IPv6, and IPv4 on some distributions) makes every user appear to come from the same address: everyone shares one rate-limit allowance, one flooder affects all, and a ban hits everyone.
 - The image is distroless — no shell — and runs as a non-root user (uid 65532); the host key is `/data/host_ed25519` in the `vivant-data` volume, so deleting the volume means a new key.

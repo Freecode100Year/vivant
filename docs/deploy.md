@@ -177,17 +177,18 @@ sudo vivant-ctl status        # 输出里的 Host key: SHA256:…
 
 ## Docker（可选）
 
-一键脚本（systemd）仍是推荐方式。习惯用容器的话，先从 GitLab 源码构建镜像（原来的 GHCR 镜像随 GitHub 账号停用，已经拉不到了）：
+一键脚本（systemd）仍是推荐方式。习惯用容器的话，每次发布都会推送多架构镜像（amd64 / arm64 / armv7）到 GHCR：
 
 ```bash
-docker build -t vivant https://gitlab.com/sj9292008133/vivant.git#main
 docker run -d --name vivant --restart unless-stopped --network host \
   --read-only --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
   -v vivant-data:/data \
-  vivant
+  ghcr.io/freecode100year/vivant:latest
 ```
 
-或者用仓库里的 [`deploy/docker-compose.yml`](../deploy/docker-compose.yml)：`docker compose -f deploy/docker-compose.yml up -d --build`。
+拉不到 GHCR 时，可以从源码自己构建：`docker build -t vivant https://gitlab.com/sj9292008133/vivant.git#main`，再把上面最后一行换成 `vivant`。
+
+或者用仓库里的 [`deploy/docker-compose.yml`](../deploy/docker-compose.yml)：`docker compose -f deploy/docker-compose.yml up -d`。
 
 - **一定要用 `--network host`。** 用 `-p 2222:2222` 时，Docker 的端口代理（IPv6、某些发行版的 IPv4）会把所有用户的来源都变成同一个地址，大家就共用一份限流额度，一个人刷屏会连累所有人，封禁也会误伤所有人。
 - 镜像基于 distroless，没有 shell，以非 root 用户（uid 65532）运行；主机密钥保存在卷 `vivant-data` 的 `/data/host_ed25519`，删卷等于换密钥。
